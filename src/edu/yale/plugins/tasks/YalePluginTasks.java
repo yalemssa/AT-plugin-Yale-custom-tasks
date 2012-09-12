@@ -109,7 +109,11 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 		return null;
 	}
 
-	public void setEditorField(DomainEditorFields domainEditorFields) {
+    public HashMap getRapidDataEntryPlugins() {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public void setEditorField(DomainEditorFields domainEditorFields) {
 	}
 
 	// Method to set the editor field component
@@ -255,8 +259,12 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 		}
 	}
 
+    public boolean doTask(String s, String[] strings) {
+        return false;  //To change body of implemented methods use File | Settings | File Templates.
+    }
 
-	// Method to get the list of specific task the plugin can perform
+
+    // Method to get the list of specific task the plugin can perform
 	public String[] getTaskList() {
 		String[] tasks = {APPLY_CONTAINER_INFORMATION_TASK, EXPORT_VOYAGER_INFORMATION, BOX_LOOKUP};
 		return tasks;
