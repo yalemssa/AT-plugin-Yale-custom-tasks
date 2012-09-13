@@ -304,8 +304,12 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
 	// main method for testing only
 	public static void main(String[] args) {
-		YaleLocationAssignmentResources dialog = new YaleLocationAssignmentResources(null);
-		dialog.showDialog();
+        YalePluginTasksFrame yalePluginTasksFrame = new YalePluginTasksFrame();
+        yalePluginTasksFrame.pack();
+        yalePluginTasksFrame.setVisible(true);
+
+		//YaleLocationAssignmentResources dialog = new YaleLocationAssignmentResources(null);
+		//dialog.showDialog();
 	}
 
 	private void finishAssignContainerInformation(YaleLocationAssignmentResources dialog, ResourcesDAO access, Resources resource) throws PersistenceException, SQLException {

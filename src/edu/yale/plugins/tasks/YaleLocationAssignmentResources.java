@@ -1,5 +1,5 @@
 /**
- * Archivists' Toolkit(TM) Copyright © 2005-2007 Regents of the University of California, New York University, & Five Colleges, Inc.
+ * Archivists' Toolkit(TM) Copyright ï¿½ 2005-2007 Regents of the University of California, New York University, & Five Colleges, Inc.
  * All rights reserved.
  *
  * This software is free. You can redistribute it and / or modify it under the terms of the Educational Community License (ECL)
@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
+import edu.yale.plugins.tasks.voyager.VoyagerInputValuesDialog;
 import org.archiviststoolkit.model.Locations;
 import org.archiviststoolkit.model.ContainerGroup;
 import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
