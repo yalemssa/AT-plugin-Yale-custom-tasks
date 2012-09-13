@@ -572,7 +572,6 @@ public class RemoteDBConnectDialog extends JDialog {
                 //---- connectionUrl ----
                 connectionUrl.setEditable(true);
                 connectionUrl.addItemListener(new ItemListener() {
-                    @Override
                     public void itemStateChanged(ItemEvent e) {
                         updateConnectionUrlInformation();
                     }
@@ -656,7 +655,6 @@ public class RemoteDBConnectDialog extends JDialog {
                 //---- button1 ----
                 button1.setText("Connect");
                 button1.addActionListener(new ActionListener() {
-                    @Override
                     public void actionPerformed(ActionEvent e) {
                         connectToDatabase();
                     }
@@ -676,7 +674,6 @@ public class RemoteDBConnectDialog extends JDialog {
                 //---- okButton ----
                 okButton.setText("OK");
                 okButton.addActionListener(new ActionListener() {
-                    @Override
                     public void actionPerformed(ActionEvent e) {
                         okButtonActionPerformed();
                     }
