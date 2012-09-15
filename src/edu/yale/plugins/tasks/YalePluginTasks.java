@@ -1,6 +1,8 @@
 
 package edu.yale.plugins.tasks;
 
+import edu.yale.plugins.tasks.model.ATContainer;
+import edu.yale.plugins.tasks.utils.ContainerGatherer;
 import org.java.plugin.Plugin;
 import org.archiviststoolkit.plugin.ATPlugin;
 import org.archiviststoolkit.ApplicationFrame;
@@ -22,7 +24,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.io.*;
 
-import edu.yale.plugins.tasks.search.BoxLookup;
 import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 
 /**

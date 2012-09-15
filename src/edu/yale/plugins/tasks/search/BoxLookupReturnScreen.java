@@ -1,5 +1,5 @@
 /*
- * Archivists' Toolkit(TM) Copyright © 2005-2007 Regents of the University of California, New York University, & Five Colleges, Inc.  
+ * Archivists' Toolkit(TM) Copyright ï¿½ 2005-2007 Regents of the University of California, New York University, & Five Colleges, Inc.  
  * All rights reserved. 
  *	
  * This software is free. You can redistribute it and / or modify it under the terms of the Educational Community License (ECL) 
@@ -23,7 +23,6 @@ import java.awt.event.*;
 import java.util.Collection;
 import java.sql.SQLException;
 import javax.swing.*;
-import javax.swing.table.TableColumn;
 
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
@@ -32,8 +31,9 @@ import ca.odell.glazedlists.BasicEventList;
 import ca.odell.glazedlists.SortedList;
 import ca.odell.glazedlists.swing.EventTableModel;
 import ca.odell.glazedlists.swing.TableComparatorChooser;
+import edu.yale.plugins.tasks.YaleAlternatingRowColorTable;
+import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import org.archiviststoolkit.swing.ATBasicDialog;
-import edu.yale.plugins.tasks.Yale_AlternatingRowColorTable;
 
 public class BoxLookupReturnScreen extends ATBasicDialog {
 
@@ -298,12 +298,12 @@ public class BoxLookupReturnScreen extends ATBasicDialog {
 		// JFormDesigner - End of component initialization  //GEN-END:initComponents
 	}
 
-	private Yale_AlternatingRowColorTable createReturnTable() {
+	private YaleAlternatingRowColorTable createReturnTable() {
 
 		SortedList<BoxLookupReturnRecords> sortedResults = new SortedList<BoxLookupReturnRecords>(resultsEventList);
 
 		EventTableModel<BoxLookupReturnRecords> resultsTableModel = new EventTableModel<BoxLookupReturnRecords>(sortedResults, new BoxLookupTableFormat());
-		Yale_AlternatingRowColorTable returnTable = new Yale_AlternatingRowColorTable(resultsTableModel, sortedResults);
+		YaleAlternatingRowColorTable returnTable = new YaleAlternatingRowColorTable(resultsTableModel, sortedResults);
 		TableComparatorChooser tableSorter = TableComparatorChooser.install(returnTable, sortedResults, TableComparatorChooser.MULTIPLE_COLUMN_MOUSE);
 //		returnTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 //		TableColumn col = returnTable.getColumnModel().getColumn(5);

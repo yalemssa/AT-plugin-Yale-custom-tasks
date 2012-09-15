@@ -18,30 +18,32 @@
 
 package edu.yale.plugins.tasks;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.Collection;
-import java.util.ArrayList;
-import javax.swing.*;
-import com.jgoodies.forms.factories.*;
-import com.jgoodies.forms.layout.*;
-import edu.yale.plugins.tasks.voyager.VoyagerInputValuesDialog;
-import org.archiviststoolkit.model.Locations;
-import org.archiviststoolkit.model.ContainerGroup;
-import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
-import org.archiviststoolkit.mydomain.*;
-import org.archiviststoolkit.editor.LocationEditor;
-import org.archiviststoolkit.util.StringHelper;
-import org.archiviststoolkit.util.LocationsUtils;
-import org.archiviststoolkit.ApplicationFrame;
-import org.archiviststoolkit.swing.ATBasicDialog;
-import org.archiviststoolkit.dialog.ErrorDialog;
-import org.hibernate.exception.ConstraintViolationException;
-import ca.odell.glazedlists.SortedList;
 import ca.odell.glazedlists.FilterList;
-import ca.odell.glazedlists.swing.TextComponentMatcherEditor;
+import ca.odell.glazedlists.SortedList;
 import ca.odell.glazedlists.swing.EventTableModel;
 import ca.odell.glazedlists.swing.TableComparatorChooser;
+import ca.odell.glazedlists.swing.TextComponentMatcherEditor;
+import com.jgoodies.forms.factories.Borders;
+import com.jgoodies.forms.factories.FormFactory;
+import com.jgoodies.forms.layout.*;
+import edu.yale.plugins.tasks.voyager.VoyagerInputValuesDialog;
+import org.archiviststoolkit.ApplicationFrame;
+import org.archiviststoolkit.dialog.ErrorDialog;
+import org.archiviststoolkit.editor.LocationEditor;
+import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
+import org.archiviststoolkit.model.ContainerGroup;
+import org.archiviststoolkit.model.Locations;
+import org.archiviststoolkit.mydomain.*;
+import org.archiviststoolkit.util.LocationsUtils;
+import org.archiviststoolkit.util.StringHelper;
+import org.hibernate.exception.ConstraintViolationException;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Collection;
 
 public class YaleLocationAssignmentResources extends JDialog {
 
