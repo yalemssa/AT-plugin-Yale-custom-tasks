@@ -6,10 +6,14 @@ package edu.yale.plugins.tasks;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Collection;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.dbdialog.RemoteDBConnectDialog;
+import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
+import edu.yale.plugins.tasks.search.BoxLookup;
+import org.archiviststoolkit.model.Resources;
 
 /**
  * @author Nathan Stevens
@@ -31,7 +35,7 @@ public class YalePluginTasksFrame extends JFrame {
      */
     private void showDBDialogButtonActionPerformed() {
         if(dbdialog == null) {
-            dbdialog = new RemoteDBConnectDialog(this);
+            dbdialog = new RemoteDBConnectDialog(this, true);
         }
 
         dbdialog.pack();
@@ -50,9 +54,24 @@ public class YalePluginTasksFrame extends JFrame {
      * This will display the location assignment dialog
      */
     private void assignContainerButtonActionPerformed() {
-        YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(this);
-        locationAssignmentDialog.pack();
-        locationAssignmentDialog.setVisible(true);
+        if(dbdialog != null) {
+            try {
+                Resources record = dbdialog.getResourceRecord();
+                if(record == null) {
+                    System.out.println("Select Record ...");
+                    return;
+                }
+
+                BoxLookup boxLookup = new BoxLookup();
+                Collection<BoxLookupReturnRecords> boxes = boxLookup.findBoxesForResource(record, null);
+
+                YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(this);
+                locationAssignmentDialog.pack();
+                locationAssignmentDialog.setVisible(true);
+            } catch (Exception e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
+        }
     }
 
     private void initComponents() {
@@ -70,7 +89,7 @@ public class YalePluginTasksFrame extends JFrame {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Application v 2.0");
+        setTitle("Yale Tasks Application v 1.0");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
@@ -131,7 +150,7 @@ public class YalePluginTasksFrame extends JFrame {
                     RowSpec.decodeSpecs("pref")));
 
                 //---- showDBDialogButton ----
-                showDBDialogButton.setText("Database Connection");
+                showDBDialogButton.setText("Show Resource Records");
                 showDBDialogButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
                         showDBDialogButtonActionPerformed();

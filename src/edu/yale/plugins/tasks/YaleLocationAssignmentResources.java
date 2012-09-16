@@ -52,6 +52,7 @@ import java.util.Collection;
 
 public class YaleLocationAssignmentResources extends JDialog {
     private EventList<BoxLookupReturnRecords> resultsEventList = new BasicEventList<BoxLookupReturnRecords>();
+
     private Collection<ContainerGroup> containerListValues;
 
     public YaleLocationAssignmentResources(Frame owner) {
@@ -75,8 +76,8 @@ public class YaleLocationAssignmentResources extends JDialog {
      */
     private YaleAlternatingRowColorTable createYaleTable() {
         SortedList<BoxLookupReturnRecords> sortedResults = new SortedList<BoxLookupReturnRecords>(resultsEventList);
-
-        EventTableModel<BoxLookupReturnRecords> resultsTableModel = new EventTableModel<BoxLookupReturnRecords>(sortedResults, new BoxLookupTableFormat(false));
+        FilterList filterList =  new FilterList(sortedResults, new TextComponentMatcherEditor(containerFilterField, new DomainFilterator()));
+        EventTableModel<BoxLookupReturnRecords> resultsTableModel = new EventTableModel<BoxLookupReturnRecords>(filterList, new BoxLookupTableFormat(false));
         YaleAlternatingRowColorTable returnTable = new YaleAlternatingRowColorTable(resultsTableModel, sortedResults);
         TableComparatorChooser.install(returnTable, sortedResults, TableComparatorChooser.MULTIPLE_COLUMN_MOUSE);
 
@@ -638,9 +639,18 @@ public class YaleLocationAssignmentResources extends JDialog {
     FilterList textFilteredIssues;
     EventTableModel lookupTableModel;
 
-    public void assignContainerListValues(Collection<ContainerGroup> values) {
+    /*public void assignContainerListValues(Collection<ContainerGroup> values) {
         containerListValues = values;
         //containerList.setListData(values.toArray());
+    }*/
+
+    /**
+     * Method the list of boxes for this resource record
+     *
+     * @param values
+     */
+    public void assignContainerListValues(Collection<BoxLookupReturnRecords> values) {
+
     }
 
     private void initLookup() {

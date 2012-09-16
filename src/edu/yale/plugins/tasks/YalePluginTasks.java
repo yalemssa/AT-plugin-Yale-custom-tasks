@@ -175,7 +175,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 							resource =
 									(Resources) access.findByPrimaryKeyLongSession(resource.getIdentifier());
 							dialog = new YaleLocationAssignmentResources(ApplicationFrame.getInstance());
-							dialog.assignContainerListValues(resource.gatherContainers(monitor));
+							//dialog.assignContainerListValues(resource.gatherContainers(monitor));
 						} catch (LookupException e) {
 							monitor.close();
 							new ErrorDialog("", e).showDialog();

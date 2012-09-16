@@ -22,7 +22,6 @@ import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 import org.archiviststoolkit.hibernate.SessionFactory;
-import org.archiviststoolkit.model.ATPluginData;
 import org.archiviststoolkit.model.Resources;
 import org.archiviststoolkit.model.LookupListItems;
 import org.archiviststoolkit.model.Users;
@@ -53,6 +52,9 @@ public class RemoteDBConnectDialog extends JDialog {
     // List that holds the records returned from the database
     java.util.List recordList;
 
+    // List that holds the user records returned from the database
+    java.util.List userList;
+
     // hashmap that holds the notes etc types keyed by a hash map
     HashMap<String, NotesEtcTypes> notesEtcTypesList = null;
 
@@ -62,10 +64,48 @@ public class RemoteDBConnectDialog extends JDialog {
         loadDatabaseConnectionInformation();
     }
 
+    /**
+     * Constructor used when supplying a session
+     *
+     * @param owner
+     * @param useSessionFactory Not used used here
+     */
+    public RemoteDBConnectDialog(Frame owner, boolean useSessionFactory) {
+        super(owner, "AT Database Connection");
+        this.sessionFactory = SessionFactory.getSessionFactory();
+        initComponents();
+        setGuiReadOnly();
+    }
+
     public RemoteDBConnectDialog(Dialog owner) {
         super(owner, "Remote Database Connection");
         initComponents();
         loadDatabaseConnectionInformation();
+    }
+
+    /**
+     * Method to hide gui components so that the user is only presented with Resource list and connection url
+     */
+    private void setGuiReadOnly() {
+        // set the connection url
+        connectionUrl.addItem(SessionFactory.getDatabaseUrl());
+
+        // now hide certain components
+        label2.setVisible(false);
+        textField1.setVisible(false);
+        label3.setVisible(false);
+        passwordField1.setVisible(false);
+        label4.setVisible(false);
+        comboBox2.setVisible(false);
+        label7.setVisible(false);
+        comboBox1.setVisible(false);
+        button1.setVisible(false);
+        label5.setVisible(false);
+        progressBar1.setVisible(false);
+
+        // now load the resources and user records
+        loadResourceRecords();
+        loadUserRecords();
     }
 
     /**
@@ -139,7 +179,7 @@ public class RemoteDBConnectDialog extends JDialog {
         } else if (databaseType.equals(SessionFactory.DATABASE_TYPE_INTERNAL)) {
             driverClass = "org.hsqldb.jdbcDriver";
             hibernateDialect = "org.hibernate.dialect.HSQLDialect";
-        }else { // should never get here
+        } else { // should never get here
             System.out.println("Unknown database type : " + databaseType);
             return false;
         }
@@ -240,7 +280,7 @@ public class RemoteDBConnectDialog extends JDialog {
         try {
             tx = session.beginTransaction();
             Criteria criteria = session.createCriteria(Users.class);
-            recordList = criteria.list();
+            userList = criteria.list();
             tx.commit();
 
         } catch (RuntimeException ex) {
@@ -260,12 +300,12 @@ public class RemoteDBConnectDialog extends JDialog {
         Runnable doWorkRunnable = new Runnable() {
             public void run() {
                 // now sort the returned list
-                Collections.sort(recordList);
+                Collections.sort(userList);
 
                 // clear any records in the user combobox
                 userComboBox.removeAllItems();
 
-                for (Object object : recordList) {
+                for (Object object : userList) {
                     userComboBox.addItem(object);
                 }
 
@@ -305,10 +345,10 @@ public class RemoteDBConnectDialog extends JDialog {
     /**
      * Method to get the currently selected user
      *
-     * @return  Return the currently selected user
+     * @return Return the currently selected user
      */
     public Users getSelectedUser() {
-        Users user = (Users)userComboBox.getSelectedItem();
+        Users user = (Users) userComboBox.getSelectedItem();
         return user;
     }
 
@@ -319,7 +359,7 @@ public class RemoteDBConnectDialog extends JDialog {
      * @throws Exception
      */
     public Resources getResourceRecord() throws Exception {
-        if(getCurrentRecord() != null) {
+        if (getCurrentRecord() != null) {
             return getResourceRecord(getCurrentRecord().getIdentifier());
         } else {
             return null;
@@ -348,6 +388,7 @@ public class RemoteDBConnectDialog extends JDialog {
 
     /**
      * Method to save a domain object
+     *
      * @param record The domain object to save
      */
     public void saveRecord(DomainObject record) throws Exception {
@@ -362,12 +403,14 @@ public class RemoteDBConnectDialog extends JDialog {
         } catch (HibernateException hibernateException) {
             try {
                 tx.rollback();
-            } catch (HibernateException e) { }
+            } catch (HibernateException e) {
+            }
             throw new PersistenceException("failed to update", hibernateException);
         } catch (Exception sqlException) {
             try {
                 tx.rollback();
-            } catch (HibernateException e) { }
+            } catch (HibernateException e) {
+            }
             throw new PersistenceException("failed to update", sqlException);
         }
     }
@@ -381,15 +424,15 @@ public class RemoteDBConnectDialog extends JDialog {
         // create the audit info to add to the  domain object
         Date now = new Date();
 
-	    AuditInfo auditInfo = new AuditInfo();
-	    auditInfo.setCreated(now);
-	    auditInfo.setLastUpdated(now);
+        AuditInfo auditInfo = new AuditInfo();
+        auditInfo.setCreated(now);
+        auditInfo.setLastUpdated(now);
 
         // set which user created this object
         String userName = getSelectedUser().getUserName();
         auditInfo.setLastUpdatedBy(userName);
 
-        if(record.getAuditInfo() == null) {
+        if (record.getAuditInfo() == null) {
             auditInfo.setCreatedBy(userName);
         }
 
@@ -433,7 +476,7 @@ public class RemoteDBConnectDialog extends JDialog {
     public NotesEtcTypes lookupNoteEtcTypeByName(String name) {
         // check to see if the notes ETC types have been loaded. If not then load
         // them from the database
-        if(notesEtcTypesList == null) {
+        if (notesEtcTypesList == null) {
             loadNotesEtcTypesByNames();
         }
 
@@ -443,7 +486,6 @@ public class RemoteDBConnectDialog extends JDialog {
     /**
      * Method to create a hashmap of  notes Etc types keyed by connical name
      * The notes etc type are loaded from the database
-     *
      */
     private void loadNotesEtcTypesByNames() {
         try {
@@ -455,16 +497,16 @@ public class RemoteDBConnectDialog extends JDialog {
             notesEtcTypesList = new HashMap<String, NotesEtcTypes>();
 
             NotesEtcTypes noteEtcType;
-            for(Object o : list) {
+            for (Object o : list) {
                 noteEtcType = (NotesEtcTypes) o;
-				notesEtcTypesList.put(noteEtcType.getNotesEtcName(), noteEtcType);
+                notesEtcTypesList.put(noteEtcType.getNotesEtcName(), noteEtcType);
             }
 
         } catch (RuntimeException ex) {
             JOptionPane.showMessageDialog(this,
-                        "Failed to load Notes Etc Types ...",
-                        "Record Load Error",
-                        JOptionPane.ERROR_MESSAGE);
+                    "Failed to load Notes Etc Types ...",
+                    "Record Load Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -542,28 +584,28 @@ public class RemoteDBConnectDialog extends JDialog {
             //======== contentPanel ========
             {
                 contentPanel.setLayout(new FormLayout(
-                    new ColumnSpec[] {
-                        FormFactory.DEFAULT_COLSPEC,
-                        FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                        new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                    },
-                    new RowSpec[] {
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC
-                    }));
+                        new ColumnSpec[]{
+                                FormFactory.DEFAULT_COLSPEC,
+                                FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                        },
+                        new RowSpec[]{
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC
+                        }));
 
                 //---- label1 ----
                 label1.setText("Connection URL");
@@ -596,11 +638,11 @@ public class RemoteDBConnectDialog extends JDialog {
                 contentPanel.add(label4, cc.xy(1, 7));
 
                 //---- comboBox2 ----
-                comboBox2.setModel(new DefaultComboBoxModel(new String[] {
-                    "MySQL",
-                    "Oracle",
-                    "Microsoft SQL Server",
-                    "Internal Database"
+                comboBox2.setModel(new DefaultComboBoxModel(new String[]{
+                        "MySQL",
+                        "Oracle",
+                        "Microsoft SQL Server",
+                        "Internal Database"
                 }));
                 contentPanel.add(comboBox2, cc.xy(3, 7));
 
@@ -609,12 +651,12 @@ public class RemoteDBConnectDialog extends JDialog {
                 contentPanel.add(label7, cc.xy(1, 9));
 
                 //---- comboBox1 ----
-                comboBox1.setModel(new DefaultComboBoxModel(new String[] {
-                    "Resource Records",
-                    "Digital Object Records",
-                    "Accession Records",
-                    "Name Records",
-                    "Subject Records"
+                comboBox1.setModel(new DefaultComboBoxModel(new String[]{
+                        "Resource Records",
+                        "Digital Object Records",
+                        "Accession Records",
+                        "Name Records",
+                        "Subject Records"
                 }));
                 contentPanel.add(comboBox1, cc.xy(3, 9));
 
@@ -640,17 +682,17 @@ public class RemoteDBConnectDialog extends JDialog {
             {
                 buttonBar.setBorder(Borders.BUTTON_BAR_GAP_BORDER);
                 buttonBar.setLayout(new FormLayout(
-                    new ColumnSpec[] {
-                        FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                        FormFactory.DEFAULT_COLSPEC,
-                        FormFactory.GLUE_COLSPEC,
-                        FormFactory.DEFAULT_COLSPEC,
-                        FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                        FormFactory.DEFAULT_COLSPEC,
-                        FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                        FormFactory.BUTTON_COLSPEC
-                    },
-                    RowSpec.decodeSpecs("pref")));
+                        new ColumnSpec[]{
+                                FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                FormFactory.DEFAULT_COLSPEC,
+                                FormFactory.GLUE_COLSPEC,
+                                FormFactory.DEFAULT_COLSPEC,
+                                FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                FormFactory.DEFAULT_COLSPEC,
+                                FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                FormFactory.BUTTON_COLSPEC
+                        },
+                        RowSpec.decodeSpecs("pref")));
 
                 //---- button1 ----
                 button1.setText("Connect");
@@ -666,8 +708,8 @@ public class RemoteDBConnectDialog extends JDialog {
                 buttonBar.add(label8, cc.xy(4, 1));
 
                 //---- userComboBox ----
-                userComboBox.setModel(new DefaultComboBoxModel(new String[] {
-                    "No Users Loaded"
+                userComboBox.setModel(new DefaultComboBoxModel(new String[]{
+                        "No Users Loaded"
                 }));
                 buttonBar.add(userComboBox, cc.xy(6, 1));
 

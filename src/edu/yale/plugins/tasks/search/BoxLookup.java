@@ -22,10 +22,12 @@ package edu.yale.plugins.tasks.search;
 
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import org.archiviststoolkit.dialog.ErrorDialog;
+import org.archiviststoolkit.swing.InfiniteProgressPanel;
 import org.archiviststoolkit.util.MyTimer;
 import org.archiviststoolkit.util.StringHelper;
 import org.archiviststoolkit.hibernate.SessionFactory;
 import org.archiviststoolkit.model.Locations;
+import org.archiviststoolkit.model.Resources;
 import org.archiviststoolkit.mydomain.DomainAccessObjectFactory;
 import org.archiviststoolkit.mydomain.DomainAccessObject;
 import org.archiviststoolkit.mydomain.PersistenceException;
@@ -39,534 +41,578 @@ import java.util.HashMap;
 import java.text.NumberFormat;
 
 public class BoxLookup {
+    TreeMap<String, SeriesInfo> seriesInfo = new TreeMap<String, SeriesInfo>();
+
+    HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
+
+    String logMessage = "";
+
+    Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
+
+    DomainAccessObject locationDAO;
+
+    Connection con;
+
+    // prepared statements used when searching
+    PreparedStatement resourceIdLookup;
+    PreparedStatement componentLookupByResource;
+    PreparedStatement componentLookupByComponent;
+    PreparedStatement instanceLookupByComponent;
+
+    public BoxLookup() throws SQLException, ClassNotFoundException {
+        Class.forName(SessionFactory.getDriverClass());
+        con = DriverManager.getConnection(SessionFactory.getDatabaseUrl(),
+                SessionFactory.getUserName(),
+                SessionFactory.getPassword());
+    }
+
+    /**
+     * Method to initialize the set of prepared statement needed
+     *
+     * @throws Exception
+     */
+    private void initPreparedStatements() throws SQLException {
+        String sqlString = "SELECT Resources.resourceId\n" +
+                "FROM Resources\n" +
+                "WHERE resourceIdentifier1 = ? and resourceIdentifier2 = ?";
+        resourceIdLookup = con.prepareStatement(sqlString);
+
+        sqlString = "SELECT ResourcesComponents.resourceComponentId, \n" +
+                "\tResourcesComponents.resourceLevel, \n" +
+                "\tResourcesComponents.title, \n" +
+                "\tResourcesComponents.hasChild, \n" +
+                "\tResourcesComponents.subdivisionIdentifier\n" +
+                "FROM ResourcesComponents\n" +
+                "WHERE ResourcesComponents.resourceId = ?";
+        componentLookupByResource = con.prepareStatement(sqlString);
+
+        sqlString = "SELECT ResourcesComponents.resourceComponentId, \n" +
+                "\tResourcesComponents.resourceLevel, \n" +
+                "\tResourcesComponents.title, \n" +
+                "\tResourcesComponents.hasChild\n" +
+                "FROM ResourcesComponents\n" +
+                "WHERE ResourcesComponents.parentResourceComponentId = ?";
+        componentLookupByComponent = con.prepareStatement(sqlString);
 
 
-	TreeMap<String, SeriesInfo> seriesInfo = new TreeMap<String, SeriesInfo>();
+        sqlString = "SELECT *" +
+                "FROM ArchDescriptionInstances\n" +
+                "WHERE resourceComponentId in (?)";
+        instanceLookupByComponent = con.prepareStatement(sqlString);
+    }
 
-	HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
+    public void doSearch(String msNumber, String ruNumber, String seriesTitle, String accessionNumber, String boxNumber, BoxLookupReturnScreen returnSrceen) {
+        seriesInfo = new TreeMap<String, SeriesInfo>();
 
-	String logMessage = "";
+        componentTitleLookup = new HashMap<Long, String>();
 
-	Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
+        logMessage = "";
 
-	DomainAccessObject locationDAO;
+        Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
 
-	Connection con;
+        try {
+            // initialize the prepared statements
+            initPreparedStatements();
+            String sqlString = "";
 
-	public BoxLookup() throws SQLException, ClassNotFoundException {
-		Class.forName(SessionFactory.getDriverClass());
-		con = DriverManager.getConnection(SessionFactory.getDatabaseUrl(),
-				SessionFactory.getUserName(),
-				SessionFactory.getPassword());
-	}
+            // get the locations domain access object
+            locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
 
-	public void doSearch(String msNumber, String ruNumber, String seriesTitle, String accessionNumber, String boxNumber, BoxLookupReturnScreen returnSrceen) {
+            System.out.println("doing search");
 
-		seriesInfo = new TreeMap<String, SeriesInfo>();
+            String resourceType = null;
+            String resourceId2 = null;
+            if (msNumber.length() != 0) {
+                resourceType = "MS";
+                resourceId2 = msNumber;
+            } else if (ruNumber.length() != 0) {
+                resourceType = "RU";
+                resourceId2 = ruNumber;
+            }
+            resourceIdLookup.setString(1, resourceType);
+            resourceIdLookup.setString(2, resourceId2);
 
-		componentTitleLookup = new HashMap<Long, String>();
+            String uniqueId;
+            String hashKey;
 
-		logMessage = "";
+            String targetUniqueId = "";
+            if (seriesTitle.length() != 0) {
+                targetUniqueId = seriesTitle;
+            } else if (accessionNumber.length() != 0) {
+                targetUniqueId = accessionNumber;
+            }
 
-		Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
-//		Connection con = null;
-//		String url;
-//
-//		try {
-//			//Register the JDBC driver for MySQL.
-//			Class.forName("com.mysql.jdbc.Driver");
-//
-//			//Define URL of database server for
-//			// database named JunkDB on the localhost
-//			// with the default port number 3306.
-//			url = "jdbc:mysql://localhost:3306/yale";
-//
-//			//Get a connection to the database for a
-//			// user named auser with the password
-//			// drowssap, which is password spelled
-//			// backwards.
-//			con = DriverManager.getConnection(url,"root", "notlob");
-//			//Display URL and connection information
-//			System.out.println("URL: " + url);
-//			System.out.println("Connection: " + con);
-//
-//		} catch (ClassNotFoundException e) {
-//			new ErrorDialog("", e).showDialog();
-//			UserPreferences.getInstance().saveToPreferences();
-//			System.exit(0);
-//		} catch (SQLException e) {
-//			new ErrorDialog("", e).showDialog();
-//			UserPreferences.getInstance().saveToPreferences();
-//			System.exit(0);
-//		}
+            MyTimer timer = new MyTimer();
+            timer.reset();
+            ResultSet rs = resourceIdLookup.executeQuery();
+            if (rs.next()) {
+                Long resourceId = rs.getLong(1);
+                System.out.println("Resource ID: " + resourceId);
+                componentLookupByResource.setLong(1, resourceId);
+                ResultSet components = componentLookupByResource.executeQuery();
 
-		try {
+                while (components.next()) {
+                    uniqueId = determineComponentUniqueIdentifier(resourceType, components.getString("subdivisionIdentifier"), components.getString("title"));
 
-			locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
+                    hashKey = uniqueId + seriesTitle;
+                    if (!seriesInfo.containsKey(hashKey)) {
+                        seriesInfo.put(hashKey, new SeriesInfo(uniqueId, seriesTitle));
+                    }
 
-			String sqlString ="SELECT Resources.resourceId\n" +
-					"FROM Resources\n" +
-					"WHERE resourceIdentifier1 = ? and resourceIdentifier2 = ?";
-			PreparedStatement resourceIdLookup = con.prepareStatement(sqlString);
+                    if (targetUniqueId.equals("") || uniqueId.equalsIgnoreCase(targetUniqueId)) {
+                        recurseThroughComponents(components.getLong("resourceComponentId"),
+                                hashKey,
+                                components.getBoolean("hasChild"),
+                                componentLookupByComponent,
+                                instanceLookupByComponent);
+                    }
+                }
 
-			sqlString ="SELECT ResourcesComponents.resourceComponentId, \n" +
-					"\tResourcesComponents.resourceLevel, \n" +
-					"\tResourcesComponents.title, \n" +
-					"\tResourcesComponents.hasChild, \n" +
-					"\tResourcesComponents.subdivisionIdentifier\n" +
-					"FROM ResourcesComponents\n" +
-					"WHERE ResourcesComponents.resourceId = ?";
-			PreparedStatement componentLookupByResource = con.prepareStatement(sqlString);
+                ResultSet instances;
+                TreeMap<String, ContainerInfo> containers;
+                String containerLabel;
+                Long componentId;
+                String componentTitle;
+                Double container1NumIndicator;
+                String container1AlphaIndicator;
 
-			sqlString ="SELECT ResourcesComponents.resourceComponentId, \n" +
-					"\tResourcesComponents.resourceLevel, \n" +
-					"\tResourcesComponents.title, \n" +
-					"\tResourcesComponents.hasChild\n" +
-					"FROM ResourcesComponents\n" +
-					"WHERE ResourcesComponents.parentResourceComponentId = ?";
-			PreparedStatement componentLookupByComponent = con.prepareStatement(sqlString);
+                for (SeriesInfo series : seriesInfo.values()) {
+                    sqlString = "SELECT * " +
+                            "FROM ArchDescriptionInstances\n" +
+                            "WHERE resourceComponentId in (" + series.getComponentIds() + ")";
+                    System.out.println(sqlString);
+                    Statement sqlStatement = con.createStatement();
+                    instances = sqlStatement.executeQuery(sqlString);
+                    containers = new TreeMap<String, ContainerInfo>();
+                    while (instances.next()) {
 
+                        container1NumIndicator = instances.getDouble("container1NumericIndicator");
+                        container1AlphaIndicator = instances.getString("container1AlphaNumIndicator");
+                        if (boxNumber.equals("") || boxNumber.equalsIgnoreCase(determineBoxNumber(container1NumIndicator, container1AlphaIndicator))) {
+                            containerLabel = createContainerLabel(instances.getString("container1Type"),
+                                    container1NumIndicator,
+                                    container1AlphaIndicator,
+                                    instances.getString("instanceType"));
+                            componentId = instances.getLong("resourceComponentId");
+                            componentTitle = componentTitleLookup.get(componentId);
+                            if (!containers.containsKey(containerLabel)) {
+                                containers.put(containerLabel, new ContainerInfo(containerLabel,
+                                        instances.getString("barcode"),
+                                        instances.getBoolean("userDefinedBoolean1"),
+                                        getLocationString(instances.getLong("locationId")),
+                                        componentTitle,
+                                        instances.getString("userDefinedString2")));
+                            }
+                        }
+                    }
+                    logMessage += "\n\n";
+                    for (ContainerInfo container : containers.values()) {
+                        results.add(new BoxLookupReturnRecords(createPaddedResourceIdentifier(resourceType, resourceId2),
+                                series.getUniqueId(),
+                                container.getComponentTitle(),
+                                container.getLocation(),
+                                container.getBarcode(),
+                                container.isRestriction(),
+                                container.getLabel(),
+                                container.getContainerType()));
+                        logMessage += "\nAccession Number: " + series.getUniqueId() +
+                                " Sereis Title: " + series.getSeriesTitle() +
+                                " Container: " + container.getLabel() +
+                                " Barcode: " + container.getBarcode() +
+                                " Restrictions: " + container.isRestriction();
 
-			sqlString ="SELECT *" +
-					"FROM ArchDescriptionInstances\n" +
-					"WHERE resourceComponentId in (?)";
-			PreparedStatement instanceLookupByComponent = con.prepareStatement(sqlString);
+                    }
+                    returnSrceen.updateResultList(results);
+                    returnSrceen.setElapsedTimeText(MyTimer.toString(timer.elapsedTimeMillis()));
+                }
+            }
+        } catch (SQLException e) {
+            new ErrorDialog("", e).showDialog();
+        } catch (PersistenceException e) {
+            new ErrorDialog("", e).showDialog();
+        } catch (LookupException e) {
+            new ErrorDialog("", e).showDialog();
+        }
+    }
 
+    /**
+     * Method to locate all boxes for a particular resource. It is essentially the doSearch method but only for a
+     * single resource, and the functionality can probable be shared, but for now keep it self contained
+     */
+    public Collection<BoxLookupReturnRecords> findBoxesForResource(Resources record, InfiniteProgressPanel monitor) {
+        seriesInfo = new TreeMap<String, SeriesInfo>();
 
-//			String resourceIdString = JOptionPane.showInputDialog("Please enter a resource id");
-//			SearchDialog searchDialog = new SearchDialog(ApplicationFrame.getInstance());
-//
-//			if (searchDialog.showDialog() == JOptionPane.OK_OPTION) {
-				System.out.println("doing search");
-//				String[] idParts = resourceIdString.split("\\.");
-//				String resourceType = idParts[0];
-				String resourceType = null;
-				String resourceId2 = null;
-				if (msNumber.length() != 0) {
-					resourceType = "MS";
-					resourceId2 = msNumber;
-				} else if (ruNumber.length() != 0) {
-					resourceType = "RU";
-					resourceId2 = ruNumber;
-				}
-				resourceIdLookup.setString(1, resourceType);
-				resourceIdLookup.setString(2, resourceId2);
+        componentTitleLookup = new HashMap<Long, String>();
 
-				String uniqueId;
-//				String seriesTitle = "";
-				String hashKey;
+        logMessage = "";
 
-				String targetUniqueId = "";
-				if (seriesTitle.length() != 0) {
-					targetUniqueId = seriesTitle;
-				} else if (accessionNumber.length() != 0) {
-					targetUniqueId = accessionNumber;
-				}
+        Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
 
-				MyTimer timer = new MyTimer();
-				timer.reset();
-				ResultSet rs = resourceIdLookup.executeQuery();
-				if (rs.next()) {
-					Long resourceId = rs.getLong(1);
-					System.out.println("Resource ID: " + resourceId);
-					componentLookupByResource.setLong(1, resourceId);
-					ResultSet components = componentLookupByResource.executeQuery();
+        try {
+            // initialize the prepared statements
+            initPreparedStatements();
+            String sqlString = "";
 
-					while (components.next()) {
-						uniqueId = determineComponentUniqueIdentifier(resourceType, components.getString("subdivisionIdentifier"), components.getString("title"));
+            // get the locations domain access object
+            locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
 
-						hashKey = uniqueId + seriesTitle;
-						if (!seriesInfo.containsKey(hashKey)) {
-							seriesInfo.put(hashKey, new SeriesInfo(uniqueId, seriesTitle));
-						}
+            System.out.println("doing search");
 
-						if (targetUniqueId.equals("") || uniqueId.equalsIgnoreCase(targetUniqueId)) {
-							recurseThroughComponents(components.getLong("resourceComponentId"),
-								hashKey,
-								components.getBoolean("hasChild"),
-								componentLookupByComponent,
-								instanceLookupByComponent);
-						}
-					}
+            String uniqueId;
+            String hashKey;
 
-					ResultSet instances;
-					TreeMap<String, ContainerInfo> containers;
-					String containerLabel;
-					Long componentId;
-					String componentTitle;
-					Double container1NumIndicator;
-					String container1AlphaIndicator;
+            MyTimer timer = new MyTimer();
+            timer.reset();
 
-					for (SeriesInfo series: seriesInfo.values()) {
-//						instanceLookupByComponent.setString(1, series.getComponentIds());
-//						System.out.println("Component Ids: " + series.getComponentIds());
-						sqlString ="SELECT * " +
-								"FROM ArchDescriptionInstances\n" +
-								"WHERE resourceComponentId in (" + series.getComponentIds() + ")";
-						System.out.println(sqlString);
-						Statement sqlStatement = con.createStatement();
-						instances = sqlStatement.executeQuery(sqlString);
-						containers = new TreeMap<String, ContainerInfo>();
-						while (instances.next()) {
+            Long resourceId = record.getResourceId();
+            System.out.println("Resource ID: " + resourceId);
 
-							container1NumIndicator = instances.getDouble("container1NumericIndicator");
-							container1AlphaIndicator = instances.getString("container1AlphaNumIndicator");
-							if (boxNumber.equals("") || boxNumber.equalsIgnoreCase(determineBoxNumber(container1NumIndicator, container1AlphaIndicator))) {
-								containerLabel = createContainerLabel(instances.getString("container1Type"),
-										container1NumIndicator,
-										container1AlphaIndicator,
-										instances.getString("instanceType"));
-								componentId = instances.getLong("resourceComponentId");
-								componentTitle = componentTitleLookup.get(componentId);
-								if (!containers.containsKey(containerLabel)) {
-									containers.put(containerLabel, new ContainerInfo(containerLabel,
-											instances.getString("barcode"),
-											instances.getBoolean("userDefinedBoolean1"),
-											getLocationString(instances.getLong("locationId")),
-											componentTitle,
-											instances.getString("userDefinedString2")));
-								}
-							}
-						}
-						logMessage += "\n\n";
-						for (ContainerInfo container: containers.values()) {
-							results.add(new BoxLookupReturnRecords(createPaddedResourceIdentifier(resourceType ,resourceId2),
-									series.getUniqueId(),
-									container.getComponentTitle(),
-									container.getLocation(),
-									container.getBarcode(),
-									container.isRestriction(),
-									container.getLabel(),
-									container.getContainerType()));
-							logMessage += "\nAccession Number: " + series.getUniqueId() +
-									" Sereis Title: " + series.getSeriesTitle() +
-									" Container: " + container.getLabel() +
-									" Barcode: " + container.getBarcode() +
-									" Restrictions: " + container.isRestriction();
+            componentLookupByResource.setLong(1, resourceId);
+            ResultSet components = componentLookupByResource.executeQuery();
 
-						}
-//					}
+            while (components.next()) {
+                uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
 
-//					sqlString ="SELECT * " +
-//							"FROM ArchDescriptionInstances\n" +
-//							"WHERE resourceComponentId in (" + leafComponentIds + ")";
-//					System.out.println(sqlString);
-//					Statement sqlStatement = con.createStatement();
-//					rs = sqlStatement.executeQuery(sqlString);
-//					while (rs.next()) {
-////						System.out.println(rs.getLong("archDescriptionInstancesId"));
-//					}
-//					final JTextArea textArea = new JTextArea();
-//					textArea.setText("Elapsed Time: " +
-//							MyTimer.toString(timer.elapsedTimeMillis()) + "\n\n" + logMessage);
-//					JScrollPane scrollPane = new JScrollPane(textArea);
-//					scrollPane.setPreferredSize(new Dimension(1000, 400));
-//					JOptionPane.showMessageDialog(ApplicationFrame.getInstance(), scrollPane);
+                hashKey = uniqueId;
+                if (!seriesInfo.containsKey(hashKey)) {
+                    seriesInfo.put(hashKey, new SeriesInfo(uniqueId, components.getString("title")));
+                }
 
-//					BoxLookupReturnScreen returnScreen = new BoxLookupReturnScreen(ApplicationFrame.getInstance());
-					returnSrceen.updateResultList(results);
-					returnSrceen.setElapsedTimeText(MyTimer.toString(timer.elapsedTimeMillis()));
-//					returnSrceen.showDialog();
-//					return MyTimer.toString(timer.elapsedTimeMillis());
-				}
+                recurseThroughComponents(components.getLong("resourceComponentId"),
+                        hashKey,
+                        components.getBoolean("hasChild"),
+                        componentLookupByComponent,
+                        instanceLookupByComponent);
+            }
 
+            ResultSet instances;
+            TreeMap<String, ContainerInfo> containers;
+            String containerLabel;
+            Long componentId;
+            String componentTitle;
+            Double container1NumIndicator;
+            String container1AlphaIndicator;
 
-			}
-		} catch (SQLException e) {
-			new ErrorDialog("", e).showDialog();
-		} catch (PersistenceException e) {
-			new ErrorDialog("", e).showDialog();
-		} catch (LookupException e) {
-			new ErrorDialog("", e).showDialog();
-		}
+            for (SeriesInfo series : seriesInfo.values()) {
+                sqlString = "SELECT * " +
+                        "FROM ArchDescriptionInstances\n" +
+                        "WHERE resourceComponentId in (" + series.getComponentIds() + ")";
+                System.out.println(sqlString);
+                Statement sqlStatement = con.createStatement();
+                instances = sqlStatement.executeQuery(sqlString);
+                containers = new TreeMap<String, ContainerInfo>();
+                while (instances.next()) {
 
-	}
+                    container1NumIndicator = instances.getDouble("container1NumericIndicator");
+                    container1AlphaIndicator = instances.getString("container1AlphaNumIndicator");
 
+                        containerLabel = createContainerLabel(instances.getString("container1Type"),
+                                container1NumIndicator,
+                                container1AlphaIndicator,
+                                instances.getString("instanceType"));
+                        componentId = instances.getLong("resourceComponentId");
+                        componentTitle = componentTitleLookup.get(componentId);
+                        if (!containers.containsKey(containerLabel)) {
+                            containers.put(containerLabel, new ContainerInfo(containerLabel,
+                                    instances.getString("barcode"),
+                                    instances.getBoolean("userDefinedBoolean1"),
+                                    getLocationString(instances.getLong("locationId")),
+                                    componentTitle,
+                                    instances.getString("userDefinedString2")));
+                        }
+                }
+                logMessage += "\n\n";
+                for (ContainerInfo container : containers.values()) {
+                    results.add(new BoxLookupReturnRecords(record.getResourceIdentifier(),
+                            series.getUniqueId(),
+                            container.getComponentTitle(),
+                            container.getLocation(),
+                            container.getBarcode(),
+                            container.isRestriction(),
+                            container.getLabel(),
+                            container.getContainerType()));
+                    logMessage += "\nAccession Number: " + series.getUniqueId() +
+                            " Series Title: " + series.getSeriesTitle() +
+                            " Container: " + container.getLabel() +
+                            " Barcode: " + container.getBarcode() +
+                            " Restrictions: " + container.isRestriction();
 
-	/**
-	 * Method to get the indicator for container 1
-	 * @return Either the Numeric or AlphaNumeric Indicator
-	 */
-	public String determineBoxNumber(Double container1NumericIndicator, String container1AlphaNumericIndicator) {
-		if(container1NumericIndicator != null && container1NumericIndicator != 0) {
-			return StringHelper.handleDecimal(container1NumericIndicator.toString());
-		} else if (container1AlphaNumericIndicator != null && StringHelper.isNotEmpty(container1AlphaNumericIndicator)) {
-			return container1AlphaNumericIndicator;
-		} else {
-			return "";
-		}
-	}
+                }
 
-	private String createPaddedResourceIdentifier(String id1, String id2) {
-		String paddedId2;
-		if (id2.length() == 1) {
-			paddedId2 = "000" + id2;
-		} else if (id2.length() == 2) {
-			paddedId2 = "00" + id2;
-		} else if (id2.length() == 3) {
-			paddedId2 = "0" + id2;
-		} else {
-			paddedId2 = id2;
-		}
-		return id1 + paddedId2;
-	}
+                System.out.println("Total Time: "  + MyTimer.toString(timer.elapsedTimeMillis()));
+
+                return results;
+            }
+        } catch (SQLException e) {
+            new ErrorDialog("", e).showDialog();
+        } catch (PersistenceException e) {
+            new ErrorDialog("", e).showDialog();
+        } catch (LookupException e) {
+            new ErrorDialog("", e).showDialog();
+        }
+
+        return null;
+    }
+
+    /**
+     * Method to get the indicator for container 1
+     *
+     * @return Either the Numeric or AlphaNumeric Indicator
+     */
+    public String determineBoxNumber(Double container1NumericIndicator, String container1AlphaNumericIndicator) {
+        if (container1NumericIndicator != null && container1NumericIndicator != 0) {
+            return StringHelper.handleDecimal(container1NumericIndicator.toString());
+        } else if (container1AlphaNumericIndicator != null && StringHelper.isNotEmpty(container1AlphaNumericIndicator)) {
+            return container1AlphaNumericIndicator;
+        } else {
+            return "";
+        }
+    }
+
+    private String createPaddedResourceIdentifier(String id1, String id2) {
+        String paddedId2;
+        if (id2.length() == 1) {
+            paddedId2 = "000" + id2;
+        } else if (id2.length() == 2) {
+            paddedId2 = "00" + id2;
+        } else if (id2.length() == 3) {
+            paddedId2 = "0" + id2;
+        } else {
+            paddedId2 = id2;
+        }
+        return id1 + paddedId2;
+    }
 
 
+    private String determineComponentUniqueIdentifier(String resourceType, String componenetUniqueId, String seriesTitle) throws SQLException {
+        String accessionNumber;
+        if (componenetUniqueId != null && componenetUniqueId.length() != 0) {
+            return componenetUniqueId.replace("Accession ", "");
+        } else if (resourceType.equalsIgnoreCase("ms")) {
+            return seriesTitle.replace("Accession ", "");
+        } else {
+            return "";
+        }
+    }
 
-	private String determineComponentUniqueIdentifier(String resourceType, String componenetUniqueId, String seriesTitle) throws SQLException {
-		String accessionNumber;
-		if (componenetUniqueId != null && componenetUniqueId.length() != 0) {
-			return componenetUniqueId.replace("Accession ", "");
-		} else if (resourceType.equalsIgnoreCase("ms")) {
-			return seriesTitle.replace("Accession ", "");
-		} else {
-			return "";
-		}
+    private String getLocationString(Long locationId) throws LookupException {
+        Locations location = (Locations) locationDAO.findByPrimaryKey(locationId);
+        if (location != null) {
+            return location.toString();
+        } else {
+            return "";
+        }
+    }
 
-//		if (resourceType.equalsIgnoreCase("ms")) {
-//			if (components.getString("title").startsWith("Accession"))  {
-//				uniqueId = components.getString("title").replace("Accession ", "");
-//			} else {
-//				uniqueId = "";
-//			}
-//		} else {
-//			if (components.getString("subdivisionIdentifier").startsWith("Accession"))  {
-//				uniqueId = components.getString("subdivisionIdentifier").replace("Accession ", "");
-//			} else {
-//				uniqueId = "";
-//			}
-//		}
-//		return uniqueId;
-	}
-
-	private String getLocationString(Long locationId) throws LookupException {
-		Locations location = (Locations)locationDAO.findByPrimaryKey(locationId);
-		if (location != null) {			
-			return location.toString();
-		} else {
-			return "";
-		}
-	}
-
-	private void recurseThroughComponents(Long componentID,
-										  String hashKey,
-										  Boolean hasChild,
-										  PreparedStatement componentLookup,
-										  PreparedStatement instanceLookup) throws SQLException {
+    private void recurseThroughComponents(Long componentID,
+                                          String hashKey,
+                                          Boolean hasChild,
+                                          PreparedStatement componentLookup,
+                                          PreparedStatement instanceLookup) throws SQLException {
 //		System.out.println("Component ID: " + componentID + " Level: " + level + " Title: " + title + " Has child: " + hasChild);
-		if (hasChild) {
-			componentLookup.setLong(1, componentID);
-			ResultSet components = componentLookup.executeQuery();
-			ArrayList<ComponentInfo> componentList = new ArrayList<ComponentInfo>();
-			while (components.next()) {
-				componentList.add(new ComponentInfo(components.getLong("resourceComponentId"),
-						components.getString("resourceLevel"),
-						components.getString("title"),
-						components.getBoolean("hasChild")));
-				componentTitleLookup.put(components.getLong("resourceComponentId"), components.getString("title"));
-			}
+        if (hasChild) {
+            componentLookup.setLong(1, componentID);
+            ResultSet components = componentLookup.executeQuery();
+            ArrayList<ComponentInfo> componentList = new ArrayList<ComponentInfo>();
+            while (components.next()) {
+                componentList.add(new ComponentInfo(components.getLong("resourceComponentId"),
+                        components.getString("resourceLevel"),
+                        components.getString("title"),
+                        components.getBoolean("hasChild")));
+                componentTitleLookup.put(components.getLong("resourceComponentId"), components.getString("title"));
+            }
 
-			if (componentList.size() > 0) {
-				for (ComponentInfo component: componentList) {
-					recurseThroughComponents(component.getComponentId(), hashKey, component.isHasChild(), componentLookup, instanceLookup);
-				}
-			} else {
-				//this is a hack because the has child flag for components may be set wrong
-				SeriesInfo series = seriesInfo.get(hashKey);
-				series.addComponentId(componentID);
-			}
-		} else {
+            if (componentList.size() > 0) {
+                for (ComponentInfo component : componentList) {
+                    recurseThroughComponents(component.getComponentId(), hashKey, component.isHasChild(), componentLookup, instanceLookup);
+                }
+            } else {
+                //this is a hack because the has child flag for components may be set wrong
+                SeriesInfo series = seriesInfo.get(hashKey);
+                series.addComponentId(componentID);
+            }
+        } else {
 
-			SeriesInfo series = seriesInfo.get(hashKey);
-			series.addComponentId(componentID);
-//			instanceLookup.setLong(1, componentID);
-//			ResultSet instances = instanceLookup.executeQuery();
-//			while (instances.next()) {
-////				System.out.println("Instance ID: " + instances.getLong("archDescriptionInstancesId") + " Instance Type: " + instances.getString("instanceType"));
-//				SeriesInfo series = seriesInfo.get(hashKey);
-//				series.addComponentId(componentID);
-//			}
-		}
-//		//make sure you pick up any instances at this level whether there are children or not
-//				SeriesInfo series = seriesInfo.get(hashKey);
-//				series.addComponentId(componentID);
-		
-	}
+            SeriesInfo series = seriesInfo.get(hashKey);
+            series.addComponentId(componentID);
 
-	private String createContainerLabel(String type, Double numericIndicator, String alphaIndicator, String instanceType) {
+        }
+    }
 
-		Boolean hasNumbericIndicator;
-		if (instanceType.equalsIgnoreCase("Digital Object")) {
-			return "Digital Object(s)";
-		} else {
-			if (numericIndicator != null && numericIndicator != 0.0) {
-				hasNumbericIndicator = true;
-			} else {
-				hasNumbericIndicator = false;
-			}
-			if (type != null && type.length() > 0 && (hasNumbericIndicator || alphaIndicator.length() > 0)) {
-				try {
-					if (hasNumbericIndicator) {
-						return type + " " + NumberFormat.getInstance().format(numericIndicator);
-					} else {
-						return type + " " + alphaIndicator;
-					}
-				} catch (Exception e) {
-					new ErrorDialog("Error creating container label", e).showDialog();
-					return "no container";
-				}
-			} else {
-				return "no container";
-			}
-		}
-	}
+    private String createContainerLabel(String type, Double numericIndicator, String alphaIndicator, String instanceType) {
 
-	private class ContainerInfo {
+        Boolean hasNumbericIndicator;
+        if (instanceType.equalsIgnoreCase("Digital Object")) {
+            return "Digital Object(s)";
+        } else {
+            if (numericIndicator != null && numericIndicator != 0.0) {
+                hasNumbericIndicator = true;
+            } else {
+                hasNumbericIndicator = false;
+            }
+            if (type != null && type.length() > 0 && (hasNumbericIndicator || alphaIndicator.length() > 0)) {
+                try {
+                    if (hasNumbericIndicator) {
+                        return type + " " + NumberFormat.getInstance().format(numericIndicator);
+                    } else {
+                        return type + " " + alphaIndicator;
+                    }
+                } catch (Exception e) {
+                    new ErrorDialog("Error creating container label", e).showDialog();
+                    return "no container";
+                }
+            } else {
+                return "no container";
+            }
+        }
+    }
 
-		private String label;
-		private String barcode;
-		private Boolean restriction;
-		private String location;
-		private String componentTitle;
-		private String containerType;
+    private class ContainerInfo {
 
-		private ContainerInfo(String label, String barcode, Boolean restriction, String location, String componentTitle, String containerType) {
-			this.label = label;
-			if (barcode == null || barcode.equals("0.0")) {
-				this.barcode = "";
-			} else {
-				this.barcode = barcode;
-			}
+        private String label;
+        private String barcode;
+        private Boolean restriction;
+        private String location;
+        private String componentTitle;
+        private String containerType;
+
+        private ContainerInfo(String label, String barcode, Boolean restriction, String location, String componentTitle, String containerType) {
+            this.label = label;
+            if (barcode == null || barcode.equals("0.0")) {
+                this.barcode = "";
+            } else {
+                this.barcode = barcode;
+            }
 //			this.barcode = barcode;
-			this.restriction = restriction;
-			this.location = location;
-			this.componentTitle = componentTitle;
-			this.containerType = containerType;
-		}
+            this.restriction = restriction;
+            this.location = location;
+            this.componentTitle = componentTitle;
+            this.containerType = containerType;
+        }
 
-		public String getLabel() {
-			return label;
-		}
+        public String getLabel() {
+            return label;
+        }
 
-		public String getBarcode() {
-			return barcode;
-		}
+        public String getBarcode() {
+            return barcode;
+        }
 
-		public Boolean isRestriction() {
-			return restriction;
-		}
+        public Boolean isRestriction() {
+            return restriction;
+        }
 
-		public String getLocation() {
-			return location;
-		}
+        public String getLocation() {
+            return location;
+        }
 
-		public void setLocation(String location) {
-			this.location = location;
-		}
+        public void setLocation(String location) {
+            this.location = location;
+        }
 
-		public String getComponentTitle() {
-			return componentTitle;
-		}
+        public String getComponentTitle() {
+            return componentTitle;
+        }
 
-		public void setComponentTitle(String componentTitle) {
-			this.componentTitle = componentTitle;
-		}
+        public void setComponentTitle(String componentTitle) {
+            this.componentTitle = componentTitle;
+        }
 
-		public String getContainerType() {
-			return containerType;
-		}
+        public String getContainerType() {
+            return containerType;
+        }
 
-		public void setContainerType(String containerType) {
-			this.containerType = containerType;
-		}
-	}
+        public void setContainerType(String containerType) {
+            this.containerType = containerType;
+        }
+    }
 
-	private class SeriesInfo {
+    private class SeriesInfo {
 
-		private String uniqueId;
-		private String seriesTitle;
-		private String componentIds = null;
+        private String uniqueId;
+        private String seriesTitle;
+        private String componentIds = null;
 
-		private SeriesInfo(String uniqueId, String seriesTitle) {
-			this.uniqueId = uniqueId;
-			this.seriesTitle = seriesTitle;
-		}
+        private SeriesInfo(String uniqueId, String seriesTitle) {
+            this.uniqueId = uniqueId;
+            this.seriesTitle = seriesTitle;
+        }
 
 
-		public String getUniqueId() {
-			return uniqueId;
-		}
+        public String getUniqueId() {
+            return uniqueId;
+        }
 
-		public void setUniqueId(String uniqueId) {
-			this.uniqueId = uniqueId;
-		}
+        public void setUniqueId(String uniqueId) {
+            this.uniqueId = uniqueId;
+        }
 
-		public String getSeriesTitle() {
-			return seriesTitle;
-		}
+        public String getSeriesTitle() {
+            return seriesTitle;
+        }
 
-		public void setSeriesTitle(String seriesTitle) {
-			this.seriesTitle = seriesTitle;
-		}
+        public void setSeriesTitle(String seriesTitle) {
+            this.seriesTitle = seriesTitle;
+        }
 
-		public String getComponentIds() {
-			return componentIds;
-		}
+        public String getComponentIds() {
+            return componentIds;
+        }
 
-		public void addComponentId(Long componentId) {
-			if (this.componentIds == null){
-				this.componentIds = componentId.toString();
-			} else {
-				this.componentIds += ", " + componentId;
-			}
-		}
-	}
+        public void addComponentId(Long componentId) {
+            if (this.componentIds == null) {
+                this.componentIds = componentId.toString();
+            } else {
+                this.componentIds += ", " + componentId;
+            }
+        }
+    }
 
-	private class ComponentInfo {
+    private class ComponentInfo {
 
-		private Long componentId;
-		private String resourceLevel;
-		private String title;
-		private Boolean hasChild;
+        private Long componentId;
+        private String resourceLevel;
+        private String title;
+        private Boolean hasChild;
 
-		private ComponentInfo(Long componentId, String resourceLevel, String title, Boolean hasChild) {
-			this.componentId = componentId;
-			this.resourceLevel = resourceLevel;
-			this.title = title;
-			this.hasChild = hasChild;
-		}
+        private ComponentInfo(Long componentId, String resourceLevel, String title, Boolean hasChild) {
+            this.componentId = componentId;
+            this.resourceLevel = resourceLevel;
+            this.title = title;
+            this.hasChild = hasChild;
+        }
 
-		public Long getComponentId() {
-			return componentId;
-		}
+        public Long getComponentId() {
+            return componentId;
+        }
 
-		public void setComponentId(Long componentId) {
-			this.componentId = componentId;
-		}
+        public void setComponentId(Long componentId) {
+            this.componentId = componentId;
+        }
 
-		public String getResourceLevel() {
-			return resourceLevel;
-		}
+        public String getResourceLevel() {
+            return resourceLevel;
+        }
 
-		public void setResourceLevel(String resourceLevel) {
-			this.resourceLevel = resourceLevel;
-		}
+        public void setResourceLevel(String resourceLevel) {
+            this.resourceLevel = resourceLevel;
+        }
 
-		public String getTitle() {
-			return title;
-		}
+        public String getTitle() {
+            return title;
+        }
 
-		public void setTitle(String title) {
-			this.title = title;
-		}
+        public void setTitle(String title) {
+            this.title = title;
+        }
 
-		public Boolean isHasChild() {
-			return hasChild;
-		}
+        public Boolean isHasChild() {
+            return hasChild;
+        }
 
-		public void setHasChild(Boolean hasChild) {
-			this.hasChild = hasChild;
-		}
-	}
+        public void setHasChild(Boolean hasChild) {
+            this.hasChild = hasChild;
+        }
+    }
 
 }
