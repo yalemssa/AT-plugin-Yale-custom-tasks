@@ -3,11 +3,14 @@ package edu.yale.plugins.tasks;
 
 import edu.yale.plugins.tasks.model.ATContainer;
 import edu.yale.plugins.tasks.utils.ContainerGatherer;
+import org.archiviststoolkit.exceptions.UnsupportedDatabaseType;
+import org.archiviststoolkit.structure.ATFieldInfo;
+import org.archiviststoolkit.structure.DefaultValues;
+import org.archiviststoolkit.util.*;
 import org.java.plugin.Plugin;
 import org.archiviststoolkit.plugin.ATPlugin;
 import org.archiviststoolkit.ApplicationFrame;
 import org.archiviststoolkit.hibernate.SessionFactory;
-import org.archiviststoolkit.util.UserPreferences;
 import org.archiviststoolkit.dialog.ErrorDialog;
 import org.archiviststoolkit.dialog.ATFileChooser;
 import org.archiviststoolkit.model.*;
@@ -278,15 +281,11 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
 	// code that is executed when plugin starts. not used here
 	protected void doStart()  {
-
-
 		try {
-
 			Class.forName(SessionFactory.getDriverClass());
 			con = DriverManager.getConnection(SessionFactory.getDatabaseUrl(),
 					SessionFactory.getUserName(),
 					SessionFactory.getPassword());
-
 		} catch (ClassNotFoundException e) {
 			new ErrorDialog("", e).showDialog();
 			UserPreferences.getInstance().saveToPreferences();
@@ -296,8 +295,6 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 			UserPreferences.getInstance().saveToPreferences();
 			System.exit(0);
 		}
-
-
 	}
 
 	// code that is executed after plugin stops. not used here
@@ -305,13 +302,102 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
 	// main method for testing only
 	public static void main(String[] args) {
+        // load all the hibernate stuff that the AT application typically does
+        startHibernate();
+
+        // display the dialog that allow running the commands
         YalePluginTasksFrame yalePluginTasksFrame = new YalePluginTasksFrame();
         yalePluginTasksFrame.pack();
         yalePluginTasksFrame.setVisible(true);
-
-		//YaleLocationAssignmentResources dialog = new YaleLocationAssignmentResources(null);
-		//dialog.showDialog();
 	}
+
+    /**
+     * Method to load the hibernate engine and initial needed AT data
+     */
+    private static void startHibernate() {
+        //get user preferences
+        UserPreferences userPrefs = UserPreferences.getInstance();
+        userPrefs.populateFromPreferences();
+
+        // now bybass AT login since it assume that CLI will be used for command line.
+        // Will have to change that in the future to a sure it's not abused
+        if (!userPrefs.checkForDatabaseUrl()) {
+            System.out.println("This appears to be the first time the AT was launched. \n" +
+                    "Please fill out the database connection information");
+            System.exit(1);
+        }
+
+        // start up hibernate
+        try {
+            userPrefs.updateSessionFactoryInfo();
+        } catch (UnsupportedDatabaseType unsupportedDatabaseType) {
+            System.out.println("Error connecting to database ...");
+            System.exit(1);
+        }
+
+        // try connecting to the database
+        try {
+            connectAndTest();
+        } catch (UnsupportedDatabaseType unsupportedDatabaseType) {
+            System.out.println("Error connecting to database " + unsupportedDatabaseType);
+            System.exit(1);
+        }
+
+        // Load the Lookup List
+        if (!LookupListUtils.loadLookupLists()) {
+            System.out.println("Failed to Load the Lookup List");
+            System.exit(1);
+        }
+
+        // Loading Notes Etc. Types
+        if (!NoteEtcTypesUtils.loadNotesEtcTypes()) {
+            System.out.println("Failed to Load Notes Etc. Types");
+            System.exit(1);
+        }
+
+        System.out.println("Loading Field Information");
+        ATFieldInfo.loadFieldList();
+
+        System.out.println("Loading Location Information");
+        LocationsUtils.initLocationLookupList();
+
+        System.out.println("Loading Default Value Information");
+        DefaultValues.initDefaultValueLookup();
+
+        System.out.println("Loading In-line tags");
+        InLineTagsUtils.loadInLineTags();
+    }
+
+    /**
+     * Connect and the database engine
+     *
+     * @throws UnsupportedDatabaseType
+     */
+    private static void connectAndTest() throws UnsupportedDatabaseType {
+        while (!DatabaseConnectionUtils.testDbConnection()) {
+            System.out.println("");
+            System.exit(1);
+        }
+
+        try {
+            while (!DatabaseConnectionUtils.checkVersion(DatabaseConnectionUtils.CHECK_VERSION_FROM_MAIN)) {
+                System.out.println("Wrong database version connection");
+                System.exit(1);
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
+            System.out.println("The jdbc driver is missing");
+            e.printStackTrace();
+        }
+
+        try {
+            SessionFactory.testHibernate();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
 
 	private void finishAssignContainerInformation(YaleLocationAssignmentResources dialog, ResourcesDAO access, Resources resource) throws PersistenceException, SQLException {
 		if (dialog != null) {

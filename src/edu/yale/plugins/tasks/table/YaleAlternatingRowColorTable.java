@@ -18,7 +18,7 @@
  * Time: 1:53:35 PM
  */
 
-package edu.yale.plugins.tasks;
+package edu.yale.plugins.tasks.table;
 
 import org.archiviststoolkit.swing.DateTableCellRenderer;
 import org.archiviststoolkit.swing.NumberTableCellRenderer;

@@ -46,6 +46,15 @@ public class YalePluginTasksFrame extends JFrame {
         System.exit(0);
     }
 
+    /**
+     * This will display the location assignment dialog
+     */
+    private void assignContainerButtonActionPerformed() {
+        YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(this);
+        locationAssignmentDialog.pack();
+        locationAssignmentDialog.setVisible(true);
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner non-commercial license
@@ -88,6 +97,11 @@ public class YalePluginTasksFrame extends JFrame {
 
                 //---- assignContainerButton ----
                 assignContainerButton.setText("Assign Container Information");
+                assignContainerButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        assignContainerButtonActionPerformed();
+                    }
+                });
                 contentPanel.add(assignContainerButton, cc.xy(1, 1));
 
                 //---- label1 ----

@@ -31,8 +31,9 @@ import ca.odell.glazedlists.BasicEventList;
 import ca.odell.glazedlists.SortedList;
 import ca.odell.glazedlists.swing.EventTableModel;
 import ca.odell.glazedlists.swing.TableComparatorChooser;
-import edu.yale.plugins.tasks.YaleAlternatingRowColorTable;
+import edu.yale.plugins.tasks.table.YaleAlternatingRowColorTable;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
+import edu.yale.plugins.tasks.table.BoxLookupTableFormat;
 import org.archiviststoolkit.swing.ATBasicDialog;
 
 public class BoxLookupReturnScreen extends ATBasicDialog {

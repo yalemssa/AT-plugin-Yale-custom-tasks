@@ -17,6 +17,7 @@ new FormModel {
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "assignContainerButton"
 						"text": "Assign Container Information"
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "assignContainerButtonActionPerformed", false ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 1
 						"gridY": 1
