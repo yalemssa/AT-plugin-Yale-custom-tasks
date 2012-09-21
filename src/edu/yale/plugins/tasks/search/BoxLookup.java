@@ -41,23 +41,26 @@ import java.util.HashMap;
 import java.text.NumberFormat;
 
 public class BoxLookup {
-    TreeMap<String, SeriesInfo> seriesInfo = new TreeMap<String, SeriesInfo>();
+    private TreeMap<String, SeriesInfo> seriesInfo = new TreeMap<String, SeriesInfo>();
 
-    HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
+    private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
 
-    String logMessage = "";
+    private String logMessage = "";
 
-    Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
+    private Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
 
-    DomainAccessObject locationDAO;
+    private DomainAccessObject locationDAO;
 
-    Connection con;
+    private Connection con;
 
     // prepared statements used when searching
-    PreparedStatement resourceIdLookup;
-    PreparedStatement componentLookupByResource;
-    PreparedStatement componentLookupByComponent;
-    PreparedStatement instanceLookupByComponent;
+    private PreparedStatement resourceIdLookup;
+    private PreparedStatement componentLookupByResource;
+    private PreparedStatement componentLookupByComponent;
+    private PreparedStatement instanceLookupByComponent;
+
+    // used when loading resource records
+    InfiniteProgressPanel monitor;
 
     public BoxLookup() throws SQLException, ClassNotFoundException {
         Class.forName(SessionFactory.getDriverClass());
