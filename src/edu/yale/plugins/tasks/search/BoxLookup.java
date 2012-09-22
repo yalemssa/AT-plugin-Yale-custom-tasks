@@ -247,8 +247,6 @@ public class BoxLookup {
 
         componentTitleLookup = new HashMap<Long, String>();
 
-        logMessage = "";
-
         Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
 
         try {
@@ -259,16 +257,17 @@ public class BoxLookup {
             // get the locations domain access object
             locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
 
-            System.out.println("doing search");
+            Long resourceId = record.getResourceId();
+
+            String message = "Finding Components for Resource " + resourceId + " ...";
+            System.out.println(message);
+            monitor.setTextLine(message, 2);
 
             String uniqueId;
             String hashKey;
 
             MyTimer timer = new MyTimer();
             timer.reset();
-
-            Long resourceId = record.getResourceId();
-            System.out.println("Resource ID: " + resourceId);
 
             componentLookupByResource.setLong(1, resourceId);
             ResultSet components = componentLookupByResource.executeQuery();
@@ -296,15 +295,27 @@ public class BoxLookup {
             Double container1NumIndicator;
             String container1AlphaIndicator;
 
+            // specify the number of series found
+            System.out.println("Series Found: " + seriesInfo.size());
+            int instanceCount = 0;
+
             for (SeriesInfo series : seriesInfo.values()) {
                 sqlString = "SELECT * " +
                         "FROM ArchDescriptionInstances\n" +
                         "WHERE resourceComponentId in (" + series.getComponentIds() + ")";
+
                 System.out.println(sqlString);
+
                 Statement sqlStatement = con.createStatement();
                 instances = sqlStatement.executeQuery(sqlString);
+
+                // for all the instances found find the containers
+                System.out.println("Processing Instances: " + series.seriesTitle);
+
                 containers = new TreeMap<String, ContainerInfo>();
+
                 while (instances.next()) {
+                    instanceCount++;
 
                     container1NumIndicator = instances.getDouble("container1NumericIndicator");
                     container1AlphaIndicator = instances.getString("container1AlphaNumIndicator");
@@ -315,33 +326,39 @@ public class BoxLookup {
                                 instances.getString("instanceType"));
                         componentId = instances.getLong("resourceComponentId");
                         componentTitle = componentTitleLookup.get(componentId);
+
                         if (!containers.containsKey(containerLabel)) {
-                            containers.put(containerLabel, new ContainerInfo(containerLabel,
+                            // create the container object
+                            ContainerInfo containerInfo = new ContainerInfo(containerLabel,
                                     instances.getString("barcode"),
                                     instances.getBoolean("userDefinedBoolean1"),
                                     getLocationString(instances.getLong("locationId")),
                                     componentTitle,
-                                    instances.getString("userDefinedString2")));
+                                    instances.getString("userDefinedString2"));
+
+                            containers.put(containerLabel, containerInfo);
+
+                            // add the BoxLookupReturn Record
+                            results.add(new BoxLookupReturnRecords(record.getResourceIdentifier(),
+                                    series.getUniqueId(),
+                                    containerInfo.getComponentTitle(),
+                                    containerInfo.getLocation(),
+                                    containerInfo.getBarcode(),
+                                    containerInfo.isRestriction(),
+                                    containerInfo.getLabel(),
+                                    containerInfo.getContainerType()));
+
+                            logMessage = "\nAccession Number: " + series.getUniqueId() +
+                                    " Series Title: " + series.getSeriesTitle() +
+                                    " Container: " + containerInfo.getLabel() +
+                                    " Barcode: " + containerInfo.getBarcode() +
+                                    " Restrictions: " + containerInfo.isRestriction();
+
+                            System.out.println("Adding Containers # " + containers.size() + "\n" + logMessage);
                         }
                 }
-                logMessage += "\n\n";
-                for (ContainerInfo container : containers.values()) {
-                    results.add(new BoxLookupReturnRecords(record.getResourceIdentifier(),
-                            series.getUniqueId(),
-                            container.getComponentTitle(),
-                            container.getLocation(),
-                            container.getBarcode(),
-                            container.isRestriction(),
-                            container.getLabel(),
-                            container.getContainerType()));
-                    logMessage += "\nAccession Number: " + series.getUniqueId() +
-                            " Series Title: " + series.getSeriesTitle() +
-                            " Container: " + container.getLabel() +
-                            " Barcode: " + container.getBarcode() +
-                            " Restrictions: " + container.isRestriction();
 
-                }
-
+                System.out.println("Total Instances: " + instanceCount);
                 System.out.println("Total Time: "  + MyTimer.toString(timer.elapsedTimeMillis()));
 
                 return results;

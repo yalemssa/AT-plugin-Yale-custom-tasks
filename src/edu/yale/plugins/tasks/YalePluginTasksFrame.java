@@ -6,6 +6,7 @@ package edu.yale.plugins.tasks;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.SQLException;
 import java.util.Collection;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
@@ -13,7 +14,10 @@ import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.dbdialog.RemoteDBConnectDialog;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.search.BoxLookup;
+import org.archiviststoolkit.ApplicationFrame;
 import org.archiviststoolkit.model.Resources;
+import org.archiviststoolkit.swing.ATProgressUtil;
+import org.archiviststoolkit.swing.InfiniteProgressPanel;
 
 /**
  * @author Nathan Stevens
@@ -40,6 +44,9 @@ public class YalePluginTasksFrame extends JFrame {
 
         dbdialog.pack();
         dbdialog.setVisible(true);
+
+        // load the resource records now
+        dbdialog.loadResourcesAndUsers();
     }
 
     /**
@@ -56,18 +63,40 @@ public class YalePluginTasksFrame extends JFrame {
     private void assignContainerButtonActionPerformed() {
         if(dbdialog != null) {
             try {
-                Resources record = dbdialog.getResourceRecord();
+                final Resources record = dbdialog.getResourceRecord();
                 if(record == null) {
                     System.out.println("Select Record ...");
                     return;
                 }
 
-                BoxLookup boxLookup = new BoxLookup();
-                Collection<BoxLookupReturnRecords> boxes = boxLookup.findBoxesForResource(record, null);
+                Thread performer = new Thread(new Runnable() {
+                    public void run() {
 
-                YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(this);
-                locationAssignmentDialog.pack();
-                locationAssignmentDialog.setVisible(true);
+                        InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(YalePluginTasksFrame.this, 1000, true);
+                        monitor.start("Gathering containers...");
+
+                        try {
+                            BoxLookup boxLookup = new BoxLookup();
+
+                            Collection<BoxLookupReturnRecords> boxes = boxLookup.findBoxesForResource(record, monitor);
+
+                            monitor.close();
+
+                            YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(YalePluginTasksFrame.this);
+                            locationAssignmentDialog.pack();
+                            locationAssignmentDialog.assignContainerListValues(boxes);
+                            locationAssignmentDialog.setVisible(true);
+                        } catch (SQLException e) {
+                            monitor.close();
+                            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                        } catch (ClassNotFoundException e) {
+                            monitor.close();
+                            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                        }
+                    }
+                });
+                performer.start();
+
             } catch (Exception e) {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }

@@ -650,7 +650,8 @@ public class YaleLocationAssignmentResources extends JDialog {
      * @param values
      */
     public void assignContainerListValues(Collection<BoxLookupReturnRecords> values) {
-
+        resultsEventList.clear();
+        resultsEventList.addAll(values);
     }
 
     private void initLookup() {
