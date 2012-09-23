@@ -18,9 +18,10 @@
  * Time: 1:35:14 PM
  */
 
-package edu.yale.plugins.tasks.search;
+package edu.yale.plugins.tasks.utils;
 
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
+import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import org.archiviststoolkit.dialog.ErrorDialog;
 import org.archiviststoolkit.swing.InfiniteProgressPanel;
 import org.archiviststoolkit.util.MyTimer;
@@ -40,7 +41,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.text.NumberFormat;
 
-public class BoxLookup {
+public class BoxLookupAndUpdate {
     private TreeMap<String, SeriesInfo> seriesInfo = new TreeMap<String, SeriesInfo>();
 
     private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
@@ -62,7 +63,7 @@ public class BoxLookup {
     // used when loading resource records
     InfiniteProgressPanel monitor;
 
-    public BoxLookup() throws SQLException, ClassNotFoundException {
+    public BoxLookupAndUpdate() throws SQLException, ClassNotFoundException {
         Class.forName(SessionFactory.getDriverClass());
         con = DriverManager.getConnection(SessionFactory.getDatabaseUrl(),
                 SessionFactory.getUserName(),
@@ -259,7 +260,7 @@ public class BoxLookup {
 
             Long resourceId = record.getResourceId();
 
-            String message = "Finding Components for Resource " + resourceId + " ...";
+            String message = "Processing Components ...";
             System.out.println(message);
             monitor.setTextLine(message, 2);
 
@@ -278,6 +279,10 @@ public class BoxLookup {
                 hashKey = uniqueId;
                 if (!seriesInfo.containsKey(hashKey)) {
                     seriesInfo.put(hashKey, new SeriesInfo(uniqueId, components.getString("title")));
+
+                    message = "Saving Series Info: " + components.getString("title");
+                    System.out.println(message);
+                    monitor.setTextLine(message, 4);
                 }
 
                 recurseThroughComponents(components.getLong("resourceComponentId"),
@@ -310,56 +315,72 @@ public class BoxLookup {
                 instances = sqlStatement.executeQuery(sqlString);
 
                 // for all the instances found find the containers
-                System.out.println("Processing Instances: " + series.seriesTitle);
+                message = "Processing Instances: " + series.seriesTitle;
+                monitor.setTextLine(message, 4);
+                System.out.println(message);
 
                 containers = new TreeMap<String, ContainerInfo>();
+                BoxLookupReturnRecords boxLookupReturnRecord = null;
 
                 while (instances.next()) {
                     instanceCount++;
 
+                    Long instanceId = instances.getLong("archDescriptionInstancesId");
                     container1NumIndicator = instances.getDouble("container1NumericIndicator");
                     container1AlphaIndicator = instances.getString("container1AlphaNumIndicator");
 
-                        containerLabel = createContainerLabel(instances.getString("container1Type"),
-                                container1NumIndicator,
-                                container1AlphaIndicator,
-                                instances.getString("instanceType"));
-                        componentId = instances.getLong("resourceComponentId");
-                        componentTitle = componentTitleLookup.get(componentId);
+                    containerLabel = createContainerLabel(instances.getString("container1Type"),
+                            container1NumIndicator,
+                            container1AlphaIndicator,
+                            instances.getString("instanceType"));
+                    componentId = instances.getLong("resourceComponentId");
+                    componentTitle = componentTitleLookup.get(componentId);
 
-                        if (!containers.containsKey(containerLabel)) {
-                            // create the container object
-                            ContainerInfo containerInfo = new ContainerInfo(containerLabel,
-                                    instances.getString("barcode"),
-                                    instances.getBoolean("userDefinedBoolean1"),
-                                    getLocationString(instances.getLong("locationId")),
-                                    componentTitle,
-                                    instances.getString("userDefinedString2"));
+                    if (!containers.containsKey(containerLabel)) {
+                        // create the container object
+                        ContainerInfo containerInfo = new ContainerInfo(containerLabel,
+                                instances.getString("barcode"),
+                                instances.getBoolean("userDefinedBoolean1"),
+                                getLocationString(instances.getLong("locationId")),
+                                componentTitle,
+                                instances.getString("userDefinedString2"));
 
-                            containers.put(containerLabel, containerInfo);
+                        containers.put(containerLabel, containerInfo);
 
-                            // add the BoxLookupReturn Record
-                            results.add(new BoxLookupReturnRecords(record.getResourceIdentifier(),
-                                    series.getUniqueId(),
-                                    containerInfo.getComponentTitle(),
-                                    containerInfo.getLocation(),
-                                    containerInfo.getBarcode(),
-                                    containerInfo.isRestriction(),
-                                    containerInfo.getLabel(),
-                                    containerInfo.getContainerType()));
+                        // create and store the BoxLookupReturn Record
+                        boxLookupReturnRecord = new BoxLookupReturnRecords(record.getResourceIdentifier(),
+                                series.getUniqueId(),
+                                containerInfo.getComponentTitle(),
+                                containerInfo.getLocation(),
+                                containerInfo.getBarcode(),
+                                containerInfo.isRestriction(),
+                                containerInfo.getLabel(),
+                                containerInfo.getContainerType());
 
-                            logMessage = "\nAccession Number: " + series.getUniqueId() +
-                                    " Series Title: " + series.getSeriesTitle() +
-                                    " Container: " + containerInfo.getLabel() +
-                                    " Barcode: " + containerInfo.getBarcode() +
-                                    " Restrictions: " + containerInfo.isRestriction();
+                        boxLookupReturnRecord.addInstanceId(instanceId);
+                        results.add(boxLookupReturnRecord);
 
-                            System.out.println("Adding Containers # " + containers.size() + "\n" + logMessage);
-                        }
+                        logMessage = "Accession Number: " + series.getUniqueId() +
+                                " Series Title: " + series.getSeriesTitle() +
+                                " Container: " + containerInfo.getLabel() +
+                                " Barcode: " + containerInfo.getBarcode() +
+                                " Restrictions: " + containerInfo.isRestriction();
+
+                        message = "Adding Container # " + containers.size() + " -- " + logMessage;
+                        monitor.setTextLine(message, 4);
+                        System.out.println(message);
+                    } else {
+                        // add the instance
+                        boxLookupReturnRecord.addInstanceId(instanceId);
+
+                        message = "Saving Instance Information -- " + instanceId;
+                        monitor.setTextLine(message, 5);
+                        System.out.println(message);
+                    }
                 }
 
                 System.out.println("Total Instances: " + instanceCount);
-                System.out.println("Total Time: "  + MyTimer.toString(timer.elapsedTimeMillis()));
+                System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
 
                 return results;
             }
@@ -405,7 +426,6 @@ public class BoxLookup {
 
 
     private String determineComponentUniqueIdentifier(String resourceType, String componenetUniqueId, String seriesTitle) throws SQLException {
-        String accessionNumber;
         if (componenetUniqueId != null && componenetUniqueId.length() != 0) {
             return componenetUniqueId.replace("Accession ", "");
         } else if (resourceType.equalsIgnoreCase("ms")) {

@@ -13,8 +13,7 @@ import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.dbdialog.RemoteDBConnectDialog;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
-import edu.yale.plugins.tasks.search.BoxLookup;
-import org.archiviststoolkit.ApplicationFrame;
+import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import org.archiviststoolkit.model.Resources;
 import org.archiviststoolkit.swing.ATProgressUtil;
 import org.archiviststoolkit.swing.InfiniteProgressPanel;
@@ -73,12 +72,12 @@ public class YalePluginTasksFrame extends JFrame {
                     public void run() {
 
                         InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(YalePluginTasksFrame.this, 1000, true);
-                        monitor.start("Gathering containers...");
+                        monitor.start("Gathering Containers...");
 
                         try {
-                            BoxLookup boxLookup = new BoxLookup();
+                            BoxLookupAndUpdate boxLookupAndUpdate = new BoxLookupAndUpdate();
 
-                            Collection<BoxLookupReturnRecords> boxes = boxLookup.findBoxesForResource(record, monitor);
+                            Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(record, monitor);
 
                             monitor.close();
 

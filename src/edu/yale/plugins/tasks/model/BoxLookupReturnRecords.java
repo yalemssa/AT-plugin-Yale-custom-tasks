@@ -30,8 +30,9 @@ public class BoxLookupReturnRecords implements Comparable{
 	private Boolean restriction;
 	private String boxLabel;
 	private String containerType;
+    private String instanceIds;
 
-	public BoxLookupReturnRecords(String collectionId,
+    public BoxLookupReturnRecords(String collectionId,
 								  String uniqueId,
 								  String title,
 								  String location,
@@ -116,4 +117,16 @@ public class BoxLookupReturnRecords implements Comparable{
 	public void setContainerType(String containerType) {
 		this.containerType = containerType;
 	}
+
+    public String getInstanceIds() {
+        return instanceIds;
+    }
+
+    public void addInstanceId(Long instanceId) {
+        if (this.instanceIds == null) {
+            this.instanceIds = instanceId.toString();
+        } else {
+            this.instanceIds += ", " + instanceId;
+        }
+    }
 }

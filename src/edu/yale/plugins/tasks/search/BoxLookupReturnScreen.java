@@ -34,6 +34,7 @@ import ca.odell.glazedlists.swing.TableComparatorChooser;
 import edu.yale.plugins.tasks.table.YaleAlternatingRowColorTable;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.table.BoxLookupTableFormat;
+import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import org.archiviststoolkit.swing.ATBasicDialog;
 
 public class BoxLookupReturnScreen extends ATBasicDialog {
@@ -43,7 +44,7 @@ public class BoxLookupReturnScreen extends ATBasicDialog {
 	private String series;
 	private String accessionNumber;
 	private String box;
-	BoxLookup boxLookup;
+	BoxLookupAndUpdate boxLookupAndUpdate;
 
 
 	/** event list that hosts the issues */
@@ -53,13 +54,13 @@ public class BoxLookupReturnScreen extends ATBasicDialog {
 	public BoxLookupReturnScreen(Frame owner) throws ClassNotFoundException, SQLException {
 		super(owner);
 		initComponents();
-		boxLookup = new BoxLookup();
+		boxLookupAndUpdate = new BoxLookupAndUpdate();
 	}
 
 	public BoxLookupReturnScreen(Dialog owner) throws ClassNotFoundException, SQLException {
 		super(owner);
 		initComponents();
-		boxLookup = new BoxLookup();
+		boxLookupAndUpdate = new BoxLookupAndUpdate();
 	}
 
 	private void doneButtonActionPerformed() {
@@ -82,7 +83,7 @@ public class BoxLookupReturnScreen extends ATBasicDialog {
 		} else if (!box.equals("") && accessionNumber.equals("") && series.equals("")) {
 			JOptionPane.showMessageDialog(this, "When entering a box number you must enter either a Series or Accession number");
 		} else {
-			boxLookup.doSearch(msNumber, ruNumber, series, accessionNumber, box, this);
+			boxLookupAndUpdate.doSearch(msNumber, ruNumber, series, accessionNumber, box, this);
 		}
 	}
 

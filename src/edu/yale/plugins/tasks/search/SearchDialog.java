@@ -1,5 +1,5 @@
 /*
- * Archivists' Toolkit(TM) Copyright © 2005-2007 Regents of the University of California, New York University, & Five Colleges, Inc.  
+ * Archivists' Toolkit(TM) Copyright ï¿½ 2005-2007 Regents of the University of California, New York University, & Five Colleges, Inc.  
  * All rights reserved. 
  *	
  * This software is free. You can redistribute it and / or modify it under the terms of the Educational Community License (ECL) 
@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
+import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import org.archiviststoolkit.swing.ATBasicDialog;
 
 public class SearchDialog extends ATBasicDialog {
@@ -33,19 +34,19 @@ public class SearchDialog extends ATBasicDialog {
 	private String series;
 	private String accessionNumber;
 	private String box;
-	BoxLookup boxLookup;
+	BoxLookupAndUpdate boxLookupAndUpdate;
 
 
 	public SearchDialog(Frame owner) throws ClassNotFoundException, SQLException {
 		super(owner);
 		initComponents();
-		boxLookup = new BoxLookup();
+		boxLookupAndUpdate = new BoxLookupAndUpdate();
 	}
 
 	public SearchDialog(Dialog owner) throws ClassNotFoundException, SQLException {
 		super(owner);
 		initComponents();
-		boxLookup = new BoxLookup();
+		boxLookupAndUpdate = new BoxLookupAndUpdate();
 	}
 
 	private void searchButtonActionPerformed() {
@@ -59,7 +60,7 @@ public class SearchDialog extends ATBasicDialog {
 		if (msNumber.length() == 0 && ruNumber.length() == 0) {
 			JOptionPane.showMessageDialog(this, "You must enter data");
 		} else {
-//			boxLookup.doSearch(msNumber, ruNumber, series, accessionNumber, box);
+//			boxLookupAndUpdate.doSearch(msNumber, ruNumber, series, accessionNumber, box);
 		}
 	}
 
