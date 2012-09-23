@@ -507,6 +507,28 @@ public class BoxLookupAndUpdate {
         }
     }
 
+    /**
+     * Method to update instance values useing sql statements
+     *
+     * @param instanceIds
+     * @param barcode
+     * @param container3Type
+     * @param userDefinedString2
+     * @param changeRestriction
+     * @param restriction
+     * @param changeExportedToVoyager
+     * @param exportedToVoyager
+     * @throws Exception
+     */
+    public void updateInstanceInformation(String instanceIds, String barcode, String container3Type,
+                                          String userDefinedString2, Boolean changeRestriction, Boolean restriction,
+                                          Boolean changeExportedToVoyager, Boolean exportedToVoyager) throws Exception {
+
+        // create the sql statement for doing the updates
+
+
+    }
+
     private class ContainerInfo {
 
         private String label;

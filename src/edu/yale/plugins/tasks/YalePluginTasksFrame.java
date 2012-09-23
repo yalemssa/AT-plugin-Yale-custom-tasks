@@ -64,9 +64,12 @@ public class YalePluginTasksFrame extends JFrame {
             try {
                 final Resources record = dbdialog.getResourceRecord();
                 if(record == null) {
-                    System.out.println("Select Record ...");
+                    System.out.println("Select a Record ...");
                     return;
                 }
+
+                // disable the appropriate button
+                assignContainerButton.setEnabled(false);
 
                 Thread performer = new Thread(new Runnable() {
                     public void run() {
@@ -92,11 +95,14 @@ public class YalePluginTasksFrame extends JFrame {
                             monitor.close();
                             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
                         }
+
+                        assignContainerButton.setEnabled(true);
                     }
                 });
                 performer.start();
 
             } catch (Exception e) {
+                assignContainerButton.setEnabled(true);
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
         }

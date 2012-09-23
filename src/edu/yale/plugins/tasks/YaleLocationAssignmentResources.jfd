@@ -293,7 +293,7 @@
              <string>Containers</string> 
             </void> 
             <void property="name"> 
-             <string>label3</string> 
+             <string>containerLabel</string> 
             </void> 
            </object> 
            <object class="com.jformdesigner.model.FormLayoutConstraints"> 
@@ -408,7 +408,7 @@
              <object class="com.jformdesigner.model.FormComponent"> 
               <string>javax.swing.JTable</string> 
               <void property="name"> 
-               <string>table1</string> 
+               <string>containerLookupTable</string> 
               </void> 
               <void method="auxiliary"> 
                <void method="setProperty"> 
