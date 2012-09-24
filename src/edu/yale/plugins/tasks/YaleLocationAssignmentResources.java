@@ -336,26 +336,26 @@ public class YaleLocationAssignmentResources extends JDialog {
                 HeaderPanel.setOpaque(false);
                 HeaderPanel.setFont(new Font("Trebuchet MS", Font.PLAIN, 13));
                 HeaderPanel.setLayout(new FormLayout(
-                        new ColumnSpec[]{
-                                new ColumnSpec(Sizes.bounded(Sizes.MINIMUM, Sizes.dluX(100), Sizes.dluX(200))),
-                                new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                        },
-                        RowSpec.decodeSpecs("default")));
+                    new ColumnSpec[] {
+                        new ColumnSpec(Sizes.bounded(Sizes.MINIMUM, Sizes.dluX(100), Sizes.dluX(200))),
+                        new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                    },
+                    RowSpec.decodeSpecs("default")));
 
                 //======== panel2 ========
                 {
                     panel2.setBackground(new Color(73, 43, 104));
                     panel2.setFont(new Font("Trebuchet MS", Font.PLAIN, 13));
                     panel2.setLayout(new FormLayout(
-                            new ColumnSpec[]{
-                                    FormFactory.RELATED_GAP_COLSPEC,
-                                    new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                            },
-                            new RowSpec[]{
-                                    FormFactory.RELATED_GAP_ROWSPEC,
-                                    FormFactory.DEFAULT_ROWSPEC,
-                                    FormFactory.RELATED_GAP_ROWSPEC
-                            }));
+                        new ColumnSpec[] {
+                            FormFactory.RELATED_GAP_COLSPEC,
+                            new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                        },
+                        new RowSpec[] {
+                            FormFactory.RELATED_GAP_ROWSPEC,
+                            FormFactory.DEFAULT_ROWSPEC,
+                            FormFactory.RELATED_GAP_ROWSPEC
+                        }));
 
                     //---- mainHeaderLabel ----
                     mainHeaderLabel.setText("Resources");
@@ -370,15 +370,15 @@ public class YaleLocationAssignmentResources extends JDialog {
                     panel3.setBackground(new Color(66, 60, 111));
                     panel3.setFont(new Font("Trebuchet MS", Font.PLAIN, 13));
                     panel3.setLayout(new FormLayout(
-                            new ColumnSpec[]{
-                                    FormFactory.RELATED_GAP_COLSPEC,
-                                    new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                            },
-                            new RowSpec[]{
-                                    FormFactory.RELATED_GAP_ROWSPEC,
-                                    FormFactory.DEFAULT_ROWSPEC,
-                                    FormFactory.RELATED_GAP_ROWSPEC
-                            }));
+                        new ColumnSpec[] {
+                            FormFactory.RELATED_GAP_COLSPEC,
+                            new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                        },
+                        new RowSpec[] {
+                            FormFactory.RELATED_GAP_ROWSPEC,
+                            FormFactory.DEFAULT_ROWSPEC,
+                            FormFactory.RELATED_GAP_ROWSPEC
+                        }));
 
                     //---- subHeaderLabel ----
                     subHeaderLabel.setText("Assign Locations");
@@ -396,31 +396,31 @@ public class YaleLocationAssignmentResources extends JDialog {
                 contentPane.setMinimumSize(new Dimension(600, 600));
                 contentPane.setOpaque(false);
                 contentPane.setLayout(new FormLayout(
-                        new ColumnSpec[]{
-                                FormFactory.UNRELATED_GAP_COLSPEC,
-                                new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
-                                FormFactory.UNRELATED_GAP_COLSPEC
-                        },
-                        new RowSpec[]{
-                                FormFactory.UNRELATED_GAP_ROWSPEC,
-                                FormFactory.DEFAULT_ROWSPEC,
-                                FormFactory.LINE_GAP_ROWSPEC,
-                                FormFactory.DEFAULT_ROWSPEC,
-                                FormFactory.LINE_GAP_ROWSPEC,
-                                FormFactory.DEFAULT_ROWSPEC,
-                                FormFactory.LINE_GAP_ROWSPEC,
-                                new RowSpec(RowSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
-                                FormFactory.LINE_GAP_ROWSPEC,
-                                FormFactory.DEFAULT_ROWSPEC,
-                                FormFactory.DEFAULT_ROWSPEC,
-                                FormFactory.LINE_GAP_ROWSPEC,
-                                FormFactory.DEFAULT_ROWSPEC,
-                                FormFactory.LINE_GAP_ROWSPEC,
-                                new RowSpec(RowSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
-                                FormFactory.LINE_GAP_ROWSPEC,
-                                FormFactory.DEFAULT_ROWSPEC,
-                                FormFactory.UNRELATED_GAP_ROWSPEC
-                        }));
+                    new ColumnSpec[] {
+                        FormFactory.UNRELATED_GAP_COLSPEC,
+                        new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
+                        FormFactory.UNRELATED_GAP_COLSPEC
+                    },
+                    new RowSpec[] {
+                        FormFactory.UNRELATED_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        new RowSpec(RowSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        new RowSpec(RowSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
+                        FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.UNRELATED_GAP_ROWSPEC
+                    }));
 
                 //---- containerLabel ----
                 containerLabel.setText("Containers");
@@ -430,12 +430,12 @@ public class YaleLocationAssignmentResources extends JDialog {
                 {
                     panel5.setOpaque(false);
                     panel5.setLayout(new FormLayout(
-                            new ColumnSpec[]{
-                                    FormFactory.DEFAULT_COLSPEC,
-                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                                    new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                            },
-                            RowSpec.decodeSpecs("default")));
+                        new ColumnSpec[] {
+                            FormFactory.DEFAULT_COLSPEC,
+                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                            new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                        },
+                        RowSpec.decodeSpecs("default")));
 
                     //---- label4 ----
                     label4.setText("Filter: ");
@@ -456,14 +456,14 @@ public class YaleLocationAssignmentResources extends JDialog {
                 {
                     panel4.setOpaque(false);
                     panel4.setLayout(new FormLayout(
-                            new ColumnSpec[]{
-                                    FormFactory.DEFAULT_COLSPEC,
-                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                                    FormFactory.DEFAULT_COLSPEC,
-                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                                    FormFactory.DEFAULT_COLSPEC
-                            },
-                            RowSpec.decodeSpecs("default")));
+                        new ColumnSpec[] {
+                            FormFactory.DEFAULT_COLSPEC,
+                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                            FormFactory.DEFAULT_COLSPEC,
+                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                            FormFactory.DEFAULT_COLSPEC
+                        },
+                        RowSpec.decodeSpecs("default")));
 
                     //---- assignContainerInformation ----
                     assignContainerInformation.setText("Assign Container Information");
@@ -509,12 +509,12 @@ public class YaleLocationAssignmentResources extends JDialog {
                 {
                     panel1.setOpaque(false);
                     panel1.setLayout(new FormLayout(
-                            new ColumnSpec[]{
-                                    FormFactory.DEFAULT_COLSPEC,
-                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                                    new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                            },
-                            RowSpec.decodeSpecs("default")));
+                        new ColumnSpec[] {
+                            FormFactory.DEFAULT_COLSPEC,
+                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                            new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                        },
+                        RowSpec.decodeSpecs("default")));
 
                     //---- label2 ----
                     label2.setText("Filter:");
@@ -540,17 +540,17 @@ public class YaleLocationAssignmentResources extends JDialog {
                     buttonBar.setBackground(new Color(231, 188, 251));
                     buttonBar.setOpaque(false);
                     buttonBar.setLayout(new FormLayout(
-                            new ColumnSpec[]{
-                                    FormFactory.GLUE_COLSPEC,
-                                    FormFactory.BUTTON_COLSPEC,
-                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                                    FormFactory.DEFAULT_COLSPEC,
-                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                                    FormFactory.DEFAULT_COLSPEC,
-                                    FormFactory.RELATED_GAP_COLSPEC,
-                                    FormFactory.BUTTON_COLSPEC
-                            },
-                            RowSpec.decodeSpecs("pref")));
+                        new ColumnSpec[] {
+                            FormFactory.GLUE_COLSPEC,
+                            FormFactory.BUTTON_COLSPEC,
+                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                            FormFactory.DEFAULT_COLSPEC,
+                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                            FormFactory.DEFAULT_COLSPEC,
+                            FormFactory.RELATED_GAP_COLSPEC,
+                            FormFactory.BUTTON_COLSPEC
+                        },
+                        RowSpec.decodeSpecs("pref")));
 
                     //---- assignLocation ----
                     assignLocation.setText("Add Location Link");

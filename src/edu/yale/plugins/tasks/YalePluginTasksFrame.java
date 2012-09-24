@@ -14,9 +14,11 @@ import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.dbdialog.RemoteDBConnectDialog;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
+import org.archiviststoolkit.model.ContainerGroup;
 import org.archiviststoolkit.model.Resources;
 import org.archiviststoolkit.swing.ATProgressUtil;
 import org.archiviststoolkit.swing.InfiniteProgressPanel;
+import org.archiviststoolkit.util.MyTimer;
 
 /**
  * @author Nathan Stevens
@@ -80,23 +82,39 @@ public class YalePluginTasksFrame extends JFrame {
                         try {
                             BoxLookupAndUpdate boxLookupAndUpdate = new BoxLookupAndUpdate();
 
-                            Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(record, monitor);
+                            final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(record, monitor);
+
+                            // test performance
+                            MyTimer timer = new MyTimer();
+                            timer.reset();
+                            Collection<ContainerGroup> cg = record.gatherContainers(monitor);
+                            System.out.println("Total Containers: " + cg.size());
+                            System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
 
                             monitor.close();
 
-                            YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(YalePluginTasksFrame.this);
-                            locationAssignmentDialog.pack();
-                            locationAssignmentDialog.assignContainerListValues(boxes);
-                            locationAssignmentDialog.setVisible(true);
+                            // display the dialog in the EDT thread
+                            Runnable doWorkRunnable = new Runnable() {
+                                public void run() {
+                                    YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(YalePluginTasksFrame.this);
+                                    locationAssignmentDialog.setSize(900, 700);
+                                    locationAssignmentDialog.assignContainerListValues(boxes);
+                                    locationAssignmentDialog.setVisible(true);
+
+                                    // re-enable the assign container button
+                                    assignContainerButton.setEnabled(true);
+                                }
+                            };
+                            SwingUtilities.invokeLater(doWorkRunnable);
                         } catch (SQLException e) {
                             monitor.close();
+                            assignContainerButton.setEnabled(true);
                             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
                         } catch (ClassNotFoundException e) {
                             monitor.close();
+                            assignContainerButton.setEnabled(true);
                             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
                         }
-
-                        assignContainerButton.setEnabled(true);
                     }
                 });
                 performer.start();
