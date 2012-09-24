@@ -274,7 +274,8 @@ public class BoxLookupAndUpdate {
             ResultSet components = componentLookupByResource.executeQuery();
 
             while (components.next()) {
-                uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
+                //uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
+                uniqueId = "" + components.getLong("resourceComponentId");
 
                 hashKey = uniqueId;
                 if (!seriesInfo.containsKey(hashKey)) {
@@ -303,6 +304,7 @@ public class BoxLookupAndUpdate {
             // specify the number of series found
             System.out.println("Series Found: " + seriesInfo.size());
             int instanceCount = 0;
+            int containerCount = 0;
 
             for (SeriesInfo series : seriesInfo.values()) {
                 sqlString = "SELECT * " +
@@ -337,6 +339,8 @@ public class BoxLookupAndUpdate {
                     componentTitle = componentTitleLookup.get(componentId);
 
                     if (!containers.containsKey(containerLabel)) {
+                        containerCount++;
+
                         // create the container object
                         ContainerInfo containerInfo = new ContainerInfo(containerLabel,
                                 instances.getString("barcode"),
@@ -366,14 +370,14 @@ public class BoxLookupAndUpdate {
                                 " Barcode: " + containerInfo.getBarcode() +
                                 " Restrictions: " + containerInfo.isRestriction();
 
-                        message = "Adding Container # " + containers.size() + " -- " + logMessage;
+                        message = "Processing Container # " + containerCount + " -- " + logMessage;
                         monitor.setTextLine(message, 4);
                         System.out.println(message);
                     } else {
                         // add the instance
                         boxLookupReturnRecord.addInstanceId(instanceId);
 
-                        message = "Saving Instance Information -- " + instanceId;
+                        message = "Processing Instance -- " + instanceId;
                         monitor.setTextLine(message, 5);
                         System.out.println(message);
                     }
@@ -381,9 +385,9 @@ public class BoxLookupAndUpdate {
 
                 System.out.println("Total Instances: " + instanceCount);
                 System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
-
-                return results;
             }
+
+            return results;
         } catch (SQLException e) {
             new ErrorDialog("", e).showDialog();
         } catch (PersistenceException e) {
