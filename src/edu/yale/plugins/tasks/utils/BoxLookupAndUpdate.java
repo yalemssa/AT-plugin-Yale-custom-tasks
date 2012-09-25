@@ -46,6 +46,9 @@ public class BoxLookupAndUpdate {
 
     private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
 
+    // used to cached return screen records
+    private HashMap<Long, Collection<BoxLookupReturnRecords>> boxLookup = new HashMap<Long, Collection<BoxLookupReturnRecords>>();
+
     private String logMessage = "";
 
     private Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
@@ -242,8 +245,20 @@ public class BoxLookupAndUpdate {
     /**
      * Method to locate all boxes for a particular resource. It is essentially the doSearch method but only for a
      * single resource, and the functionality can probable be shared, but for now keep it self contained
+     *
+     * @param record
+     * @param monitor
+     * @param useCashe
+     * @return Collection Containing resources
      */
-    public Collection<BoxLookupReturnRecords> findBoxesForResource(Resources record, InfiniteProgressPanel monitor) {
+    public Collection<BoxLookupReturnRecords> findBoxesForResource(Resources record, InfiniteProgressPanel monitor, boolean useCashe) {
+        Long resourceId = record.getResourceId();
+
+        // if there is a cache set, use that
+        if(useCashe && boxLookup.containsKey(resourceId)) {
+            return boxLookup.get(resourceId);
+        }
+
         seriesInfo = new TreeMap<String, SeriesInfo>();
 
         componentTitleLookup = new HashMap<Long, String>();
@@ -257,8 +272,6 @@ public class BoxLookupAndUpdate {
 
             // get the locations domain access object
             locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
-
-            Long resourceId = record.getResourceId();
 
             String message = "Processing Components ...";
             System.out.println(message);
@@ -274,10 +287,10 @@ public class BoxLookupAndUpdate {
             ResultSet components = componentLookupByResource.executeQuery();
 
             while (components.next()) {
-                //uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
-                uniqueId = "" + components.getLong("resourceComponentId");
+                uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
+                //uniqueId = "" + components.getLong("resourceComponentId");
 
-                hashKey = uniqueId;
+                hashKey = "" + components.getLong("resourceComponentId");
                 if (!seriesInfo.containsKey(hashKey)) {
                     seriesInfo.put(hashKey, new SeriesInfo(uniqueId, components.getString("title")));
 
@@ -385,6 +398,10 @@ public class BoxLookupAndUpdate {
 
                 System.out.println("Total Instances: " + instanceCount);
                 System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
+            }
+
+            if(useCashe) {
+                boxLookup.put(resourceId, results);
             }
 
             return results;
@@ -530,6 +547,20 @@ public class BoxLookupAndUpdate {
 
         // create the sql statement for doing the updates
 
+
+    }
+
+    /**
+     * Method to update the code for the list of instances
+     *
+     * @param instanceIds
+     * @param barcode
+     */
+    public void updateBarcode(String instanceIds, String barcode) throws Exception {
+        //To change body of created methods use File | Settings | File Templates.
+    }
+
+    public void updateVoyagerInformation(String instanceIds, String bibHolding) throws Exception {
 
     }
 

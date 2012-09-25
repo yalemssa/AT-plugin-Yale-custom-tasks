@@ -48,6 +48,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.Collection;
 
 public class YaleLocationAssignmentResources extends JDialog {
@@ -60,6 +61,9 @@ public class YaleLocationAssignmentResources extends JDialog {
     //private Collection<ContainerGroup> containerListValues;
     private Collection<BoxLookupReturnRecords> containerListValues;
 
+    // object to perform jdbc lookup and updates
+    BoxLookupAndUpdate boxLookupAndUpdate = null;
+
     // The parent frame
     private Frame parentFrame = null;
 
@@ -68,6 +72,15 @@ public class YaleLocationAssignmentResources extends JDialog {
         initComponents();
         initLookup();
         this.parentFrame = owner;
+    }
+
+    /**
+     * Set the box lookup update object
+     *
+     * @param boxLookupAndUpdate
+     */
+    public void setBoxLookupAndUpdate(BoxLookupAndUpdate boxLookupAndUpdate) {
+        this.boxLookupAndUpdate = boxLookupAndUpdate;
     }
 
     public DomainSortableTable getLocationLookupTable() {
@@ -224,60 +237,77 @@ public class YaleLocationAssignmentResources extends JDialog {
         }
     }
 
+    /**
+     * Update the barcode for instances
+     *
+     * @param e
+     */
     private void rapidBarcodeEntryActionPerformed(ActionEvent e) {
-        /*int firstContainerIndex = containerList.getSelectedIndex();
-        if (firstContainerIndex == -1) {
+        int[] selectedRows = containerLookupTable.getSelectedRows();
+
+        if (selectedRows == null || selectedRows.length == 0) {
             JOptionPane.showMessageDialog(this, "You must select a container to start first.");
         } else {
-            Object[] selectedContainers = containerList.getSelectedValues();
-            if (selectedContainers.length == 1) {
+            int firstContainerIndex = selectedRows[0];
+            int lastContainerIndex = -1;
+
+            // stores the containers to process
+            ArrayList<BoxLookupReturnRecords> selectedContainers = new ArrayList<BoxLookupReturnRecords>();
+
+            if (selectedRows.length == 1) {
                 //just one container was selected so build the array starting at that index
-                ArrayList objectList = new ArrayList();
-                int lastContainerIndex = containerList.getModel().getSize();
-                for (int index = firstContainerIndex; index < lastContainerIndex; index++) {
-                    objectList.add(containerList.getModel().getElementAt(index));
-                }
-                selectedContainers = objectList.toArray();
+                lastContainerIndex = containerListValues.size();
+            } else {
+                lastContainerIndex = selectedRows[selectedRows.length -1];
             }
+
+            // the barcode string
             String barcode;
-            ApplicationFrame applicationFrame = ApplicationFrame.getInstance();
-            for (Object o : selectedContainers) {
-                ContainerGroup containerGroup = (ContainerGroup) o;
-                barcode = JOptionPane.showInputDialog(this, "Enter Barcode for " + containerGroup.getTopLevelContainerName());
+
+            for (int index = firstContainerIndex; index < lastContainerIndex; index++) {
+                BoxLookupReturnRecords boxRecord = containerTableModel.getElementAt(index);
+
+                barcode = JOptionPane.showInputDialog(parentFrame, "Enter Barcode for " + boxRecord);
+
                 if (barcode != null && barcode.length() != 0) {
-                    for (ArchDescriptionAnalogInstances instance : containerGroup.getInstances()) {
-                        instance.setBarcode(barcode);
-                        containerGroup.setTopLevelContainerName(instance.getTopLevelLabel() + " (" + instance.getBarcode() + ")");
-                        //set the record to dirty
-                        applicationFrame.setRecordDirty();
+                    boxRecord.setBarcode(barcode);
+                    String instanceIds = boxRecord.getInstanceIds();
+                    try {
+                        boxLookupAndUpdate.updateBarcode(instanceIds, barcode);
+                    } catch (Exception e1) {
+                        e1.printStackTrace();
                     }
+
+                    /*for (ArchDescriptionAnalogInstances instance : containerGroup.getInstances()) {
+                        instance.setBarcode(barcode);
+                        containerGroup.setBarcode(instance.getTopLevelLabel() + " (" + instance.getBarcode() + ")");
+                    }*/
                 } else {
                     //break out of the for loop since cancel was pressed
                     break;
                 }
             }
-            containerList.invalidate();
-            containerList.repaint();
-        }*/
+
+            containerLookupTable.invalidate();
+            containerLookupTable.repaint();
+        }
     }
 
     private void assignVoyagerInfoActionPerformed(ActionEvent e) {
-
         VoyagerInputValuesDialog dialog = new VoyagerInputValuesDialog(this);
 
         if (dialog.showDialog() == JOptionPane.OK_OPTION) {
             String bibHolding = dialog.getKeyHolding();
-//				System.out.println("Bibholding: " + bibHolding);
-            ContainerGroup containerGroup;
-            ApplicationFrame applicationFrame = ApplicationFrame.getInstance();
-            for (Object o : containerListValues) {
-                containerGroup = (ContainerGroup) o;
-                for (ArchDescriptionAnalogInstances instance : containerGroup.getInstances()) {
-                    instance.setUserDefinedString1(bibHolding);
-                    //set the record to dirty
-                    applicationFrame.setRecordDirty();
-                }
 
+            for (BoxLookupReturnRecords boxRecord : containerListValues) {
+                try {
+                    boxLookupAndUpdate.updateVoyagerInformation(boxRecord.getInstanceIds(), bibHolding);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+                /*for (ArchDescriptionAnalogInstances instance : containerGroup.getInstances()) {
+                    instance.setUserDefinedString1(bibHolding);
+                }*/
             }
         }
     }

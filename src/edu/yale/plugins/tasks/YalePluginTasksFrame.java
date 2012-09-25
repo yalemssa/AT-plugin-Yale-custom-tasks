@@ -27,6 +27,9 @@ public class YalePluginTasksFrame extends JFrame {
     // Used to connect to the AT database
     private RemoteDBConnectDialog dbdialog = null;
 
+    // method for find and storing the
+    BoxLookupAndUpdate boxLookupAndUpdate = null;
+
     /**
      * Main constructor
      */
@@ -80,16 +83,18 @@ public class YalePluginTasksFrame extends JFrame {
                         monitor.start("Gathering Containers...");
 
                         try {
-                            BoxLookupAndUpdate boxLookupAndUpdate = new BoxLookupAndUpdate();
+                            if(boxLookupAndUpdate == null) {
+                                boxLookupAndUpdate = new BoxLookupAndUpdate();
+                            }
 
-                            final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(record, monitor);
+                            final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(record, monitor, true);
 
-                            // test performance
+                            /* test performance
                             MyTimer timer = new MyTimer();
                             timer.reset();
                             Collection<ContainerGroup> cg = record.gatherContainers(monitor);
                             System.out.println("Total Containers: " + cg.size());
-                            System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
+                            System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));*/
 
                             monitor.close();
 
