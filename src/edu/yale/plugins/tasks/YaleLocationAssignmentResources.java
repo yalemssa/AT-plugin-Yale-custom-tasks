@@ -30,6 +30,7 @@ import com.jgoodies.forms.factories.FormFactory;
 import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.table.BoxLookupTableFormat;
+import edu.yale.plugins.tasks.table.BoxReturnRecordsFilterator;
 import edu.yale.plugins.tasks.table.YaleAlternatingRowColorTable;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import edu.yale.plugins.tasks.voyager.VoyagerInputValuesDialog;
@@ -98,7 +99,7 @@ public class YaleLocationAssignmentResources extends JDialog {
      */
     private YaleAlternatingRowColorTable createYaleTable() {
         SortedList<BoxLookupReturnRecords> sortedResults = new SortedList<BoxLookupReturnRecords>(resultsEventList);
-        FilterList filterList = new FilterList(sortedResults, new TextComponentMatcherEditor(containerFilterField, new DomainFilterator()));
+        FilterList filterList = new FilterList(sortedResults, new TextComponentMatcherEditor(containerFilterField, new BoxReturnRecordsFilterator()));
         containerTableModel = new EventTableModel<BoxLookupReturnRecords>(filterList, new BoxLookupTableFormat(false));
         YaleAlternatingRowColorTable returnTable = new YaleAlternatingRowColorTable(containerTableModel, sortedResults);
         TableComparatorChooser.install(returnTable, sortedResults, TableComparatorChooser.MULTIPLE_COLUMN_MOUSE);

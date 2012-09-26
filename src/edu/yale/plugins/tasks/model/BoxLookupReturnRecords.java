@@ -31,6 +31,8 @@ public class BoxLookupReturnRecords implements Comparable{
 	private String boxLabel;
 	private String containerType;
     private String instanceIds;
+    private Long locationId;
+    private int resourceRecordVersion = 0; // used to make indexing faster
 
     public BoxLookupReturnRecords(String collectionId,
 								  String uniqueId,

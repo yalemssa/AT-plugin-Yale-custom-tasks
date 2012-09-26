@@ -87,7 +87,8 @@ public class YalePluginTasksFrame extends JFrame {
                                 boxLookupAndUpdate = new BoxLookupAndUpdate();
                             }
 
-                            final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(record, monitor, true);
+                            //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(record, monitor, true);
+                            final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainers(record, monitor, true);
 
                             /* test performance
                             MyTimer timer = new MyTimer();
@@ -104,6 +105,7 @@ public class YalePluginTasksFrame extends JFrame {
                                     YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(YalePluginTasksFrame.this);
                                     locationAssignmentDialog.setSize(900, 700);
                                     locationAssignmentDialog.assignContainerListValues(boxes);
+                                    locationAssignmentDialog.setBoxLookupAndUpdate(boxLookupAndUpdate);
                                     locationAssignmentDialog.setVisible(true);
 
                                     // re-enable the assign container button

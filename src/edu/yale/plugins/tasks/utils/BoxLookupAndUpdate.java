@@ -23,22 +23,19 @@ package edu.yale.plugins.tasks.utils;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import org.archiviststoolkit.dialog.ErrorDialog;
+import org.archiviststoolkit.model.*;
 import org.archiviststoolkit.swing.InfiniteProgressPanel;
 import org.archiviststoolkit.util.MyTimer;
 import org.archiviststoolkit.util.StringHelper;
 import org.archiviststoolkit.hibernate.SessionFactory;
-import org.archiviststoolkit.model.Locations;
-import org.archiviststoolkit.model.Resources;
 import org.archiviststoolkit.mydomain.DomainAccessObjectFactory;
 import org.archiviststoolkit.mydomain.DomainAccessObject;
 import org.archiviststoolkit.mydomain.PersistenceException;
 import org.archiviststoolkit.mydomain.LookupException;
+import org.hibernate.TransientObjectException;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.TreeMap;
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.*;
 import java.text.NumberFormat;
 
 public class BoxLookupAndUpdate {
@@ -63,8 +60,8 @@ public class BoxLookupAndUpdate {
     private PreparedStatement componentLookupByComponent;
     private PreparedStatement instanceLookupByComponent;
 
-    // used when loading resource records
-    InfiniteProgressPanel monitor;
+    // keep tract of the number of instances processed
+    private int instanceCount;
 
     public BoxLookupAndUpdate() throws SQLException, ClassNotFoundException {
         Class.forName(SessionFactory.getDriverClass());
@@ -395,14 +392,14 @@ public class BoxLookupAndUpdate {
                         System.out.println(message);
                     }
                 }
-
-                System.out.println("Total Instances: " + instanceCount);
-                System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
             }
 
             if(useCashe) {
                 boxLookup.put(resourceId, results);
             }
+
+            System.out.println("Total Instances: " + instanceCount);
+            System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
 
             return results;
         } catch (SQLException e) {
@@ -414,6 +411,110 @@ public class BoxLookupAndUpdate {
         }
 
         return null;
+    }
+
+    /**
+     * Main entry point into doing a recursion
+     *
+     * @param record
+     * @param monitor
+     * @param useCache
+     * @return
+     */
+    public Collection<BoxLookupReturnRecords> gatherContainers(Resources record, InfiniteProgressPanel monitor, boolean useCache) {
+        TreeMap<String, BoxLookupReturnRecords> containers =
+                new TreeMap<String, BoxLookupReturnRecords>();
+
+        monitor.setTextLine("Resource: " + record.getTitle(), 2);
+
+        // reset the instance count and begin the time
+        instanceCount = 0;
+        MyTimer timer = new MyTimer();
+        timer.reset();
+
+        try {
+            for (ResourcesComponents component : record.getResourcesComponents()) {
+                gatherContainers(monitor, record.getResourceIdentifier(), component, containers, 3);
+            }
+        } catch (TransientObjectException e) {
+            monitor.close();
+            new ErrorDialog("Resource must be saved", e).showDialog();
+        }
+
+        ArrayList<BoxLookupReturnRecords> returnValues = new ArrayList<BoxLookupReturnRecords>(containers.values());
+
+        // print out the time it took for the search process
+        System.out.println("Total Instances: " + instanceCount);
+        System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
+
+        return returnValues;
+    }
+
+    /**
+     * Method to do recursion through all containers and create box lookup return records for them
+     *
+     * @param monitor
+     * @param resourceIdentifier
+     * @param component
+     * @param containers
+     * @param depth
+     */
+    private void gatherContainers(InfiniteProgressPanel monitor,
+                                  String resourceIdentifier, ResourcesComponents component,
+                                  TreeMap<String, BoxLookupReturnRecords> containers,
+                                  int depth) {
+
+        String containerName;
+        ArchDescriptionAnalogInstances newInstance;
+        BoxLookupReturnRecords group;
+        monitor.setTextLine(component.getTitle(), depth);
+
+        for (Object o : component.getInstances(ArchDescriptionAnalogInstances.class)) {
+            newInstance = (ArchDescriptionAnalogInstances) o;
+            containerName = newInstance.getTopLevelLabel();
+
+            if(StringHelper.isNotEmpty(newInstance.getBarcode())) {
+                containerName = newInstance.getTopLevelLabel() + " (" + newInstance.getBarcode() + ")";
+            }
+
+            String uniqueId = determineComponentUniqueIdentifier("", component.getComponentUniqueIdentifier(), component.getTitle());
+            group = containers.get(containerName);
+
+            if (group == null) {
+                String locationName = "";
+                Long locationId;
+
+                if(newInstance.getLocation() != null) {
+                    locationName = newInstance.getLocation().toString();
+                    locationId = newInstance.getLocation().getLocationId();
+                }
+
+                // create and store the BoxLookupReturn Record
+                group = new BoxLookupReturnRecords(resourceIdentifier,
+                        uniqueId,
+                        component.getTitle(),
+                        locationName,
+                        newInstance.getBarcode(),
+                        newInstance.getUserDefinedBoolean1(),
+                        newInstance.getTopLevelLabel(),
+                        newInstance.getContainer1Type());
+
+                group.addInstanceId(newInstance.getIdentifier());
+                // need to add location id
+
+                containers.put(containerName, group);
+            } else {
+                group.addInstanceId(newInstance.getIdentifier());
+            }
+
+            instanceCount++;
+        }
+
+        if (component.isHasChild()) {
+            for (ResourcesComponents childComponent : component.getResourcesComponents()) {
+                gatherContainers(monitor, resourceIdentifier, childComponent, containers, depth + 1);
+            }
+        }
     }
 
     /**
@@ -446,7 +547,7 @@ public class BoxLookupAndUpdate {
     }
 
 
-    private String determineComponentUniqueIdentifier(String resourceType, String componenetUniqueId, String seriesTitle) throws SQLException {
+    private String determineComponentUniqueIdentifier(String resourceType, String componenetUniqueId, String seriesTitle) {
         if (componenetUniqueId != null && componenetUniqueId.length() != 0) {
             return componenetUniqueId.replace("Accession ", "");
         } else if (resourceType.equalsIgnoreCase("ms")) {
@@ -580,7 +681,7 @@ public class BoxLookupAndUpdate {
             } else {
                 this.barcode = barcode;
             }
-//			this.barcode = barcode;
+
             this.restriction = restriction;
             this.location = location;
             this.componentTitle = componentTitle;

@@ -2,6 +2,8 @@
 package edu.yale.plugins.tasks;
 
 import edu.yale.plugins.tasks.model.ATContainer;
+import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
+import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import edu.yale.plugins.tasks.utils.ContainerGatherer;
 import org.archiviststoolkit.exceptions.UnsupportedDatabaseType;
 import org.archiviststoolkit.structure.ATFieldInfo;
@@ -21,6 +23,7 @@ import org.archiviststoolkit.mydomain.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Collection;
 import java.util.HashMap;
 import java.sql.SQLException;
 import java.sql.Connection;
@@ -61,8 +64,6 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 	public static final String EXPORT_VOYAGER_INFORMATION = "Export Voyager Information";
 	public static final String PARTIAL_EAD_IMPORT = "Partial EAD Import";
 	public static final String BOX_LOOKUP = "Box Lookup";
-
-
 	public static final String PLUGIN_NAME = "Yale Tasks";
 
 	protected ApplicationFrame mainFrame;
@@ -75,8 +76,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 	private int selectedRow;
 	protected ArchDescriptionAnalogInstances analogInstance;
 
-	private Connection con = null;
-
+    // class finding and storing container information
+    BoxLookupAndUpdate boxLookupAndUpdate = null;
 
 	// the default constructor
 	public YalePluginTasks() { }
@@ -153,42 +154,54 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
 	// Method to do a specific task in the plugin
 	public void doTask(String task) {
-		ApplicationFrame frame = ApplicationFrame.getInstance();
-		DomainTableWorkSurface workSurface= frame.getWorkSurfaceContainer().getCurrentWorkSurface();
-		final DomainSortableTable worksurfaceTable = (DomainSortableTable)workSurface.getTable();
-		final ResourcesDAO access = new ResourcesDAO();
-		if (task.equals(APPLY_CONTAINER_INFORMATION_TASK)) {
-			if (workSurface.getClazz() != Resources.class) {
-				JOptionPane.showMessageDialog(frame, "This function only works for the resources module");
-			} else if (worksurfaceTable.getSelectedRowCount() != 1) {
-				JOptionPane.showMessageDialog(frame, "You must select one resource record");
-			} else {
+		DomainTableWorkSurface workSurface= mainFrame.getWorkSurfaceContainer().getCurrentWorkSurface();
 
+        final DomainSortableTable worksurfaceTable = (DomainSortableTable)workSurface.getTable();
+
+        final ResourcesDAO access = new ResourcesDAO();
+
+        if (task.equals(APPLY_CONTAINER_INFORMATION_TASK)) {
+			if (workSurface.getClazz() != Resources.class) {
+				JOptionPane.showMessageDialog(mainFrame, "This function only works for the resources module");
+			} else if (worksurfaceTable.getSelectedRowCount() != 1) {
+				JOptionPane.showMessageDialog(mainFrame, "You must select one resource record");
+			} else {
 				Thread performer = new Thread(new Runnable() {
 					public void run() {
-						InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(ApplicationFrame.getInstance(), 1000, true);
-						monitor.start("gathering containers...");
-						Resources resource = (Resources) worksurfaceTable.getFilteredList().get(worksurfaceTable.getSelectedRow());
-						YaleLocationAssignmentResources dialog = null;
-						System.out.println("I am here");
-						try {
-							resource =
-									(Resources) access.findByPrimaryKeyLongSession(resource.getIdentifier());
-							dialog = new YaleLocationAssignmentResources(ApplicationFrame.getInstance());
-							//dialog.assignContainerListValues(resource.gatherContainers(monitor));
-						} catch (LookupException e) {
-							monitor.close();
-							new ErrorDialog("", e).showDialog();
-						} finally {
-							monitor.close();
-						}
-						try {
-							finishAssignContainerInformation(dialog, access, resource);
-						} catch (PersistenceException e) {
-							new ErrorDialog("", e).showDialog();
-						} catch (SQLException e) {
-							new ErrorDialog("", e).showDialog();
-						}
+                        // make sure we have the class that looks up records
+                        if(boxLookupAndUpdate == null) {
+                            try {
+                                boxLookupAndUpdate = new BoxLookupAndUpdate();
+                            } catch (Exception e) {
+                                JOptionPane.showMessageDialog(mainFrame, "Unable to connect to database");
+                                e.printStackTrace();
+                                return;
+                            }
+                        } else {
+                            System.out.println("BoxLookupAndUpdate Already Created ...");
+                        }
+
+						InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(mainFrame, 1000, true);
+						monitor.start("Gathering Containers...");
+
+                        Resources resource = (Resources) worksurfaceTable.getFilteredList().get(worksurfaceTable.getSelectedRow());
+
+                        final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(resource, monitor, true);
+
+                        // close the monitor
+                        monitor.close();
+
+                        // display the dialog in the EDT thread
+                        Runnable doWorkRunnable = new Runnable() {
+                            public void run() {
+                                YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(mainFrame);
+                                locationAssignmentDialog.setSize(900, 700);
+                                locationAssignmentDialog.assignContainerListValues(boxes);
+                                locationAssignmentDialog.setBoxLookupAndUpdate(boxLookupAndUpdate);
+                                locationAssignmentDialog.setVisible(true);
+                            }
+                        };
+                        SwingUtilities.invokeLater(doWorkRunnable);
 					}
 				}, "Gather containers");
 				performer.start();
@@ -196,9 +209,9 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
 		} else if (task.equals(EXPORT_VOYAGER_INFORMATION)) {
 			if (workSurface.getClazz() != Resources.class) {
-				JOptionPane.showMessageDialog(frame, "This function only works for the resources module");
+				JOptionPane.showMessageDialog(mainFrame, "This function only works for the resources module");
 			} else if (worksurfaceTable.getSelectedRowCount() == 0) {
-				JOptionPane.showMessageDialog(frame, "You must select at least one resource record");
+				JOptionPane.showMessageDialog(mainFrame, "You must select at least one resource record");
 			} else {
 				ATFileChooser filechooser = new ATFileChooser();
 				if(filechooser.showSaveDialog(ApplicationFrame.getInstance()) == JFileChooser.APPROVE_OPTION) {
@@ -280,22 +293,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 	}
 
 	// code that is executed when plugin starts. not used here
-	protected void doStart()  {
-		try {
-			Class.forName(SessionFactory.getDriverClass());
-			con = DriverManager.getConnection(SessionFactory.getDatabaseUrl(),
-					SessionFactory.getUserName(),
-					SessionFactory.getPassword());
-		} catch (ClassNotFoundException e) {
-			new ErrorDialog("", e).showDialog();
-			UserPreferences.getInstance().saveToPreferences();
-			System.exit(0);
-		} catch (SQLException e) {
-			new ErrorDialog("", e).showDialog();
-			UserPreferences.getInstance().saveToPreferences();
-			System.exit(0);
-		}
-	}
+	protected void doStart()  {	}
 
 	// code that is executed after plugin stops. not used here
 	protected void doStop()  { }
@@ -402,9 +400,9 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 	private void finishAssignContainerInformation(YaleLocationAssignmentResources dialog, ResourcesDAO access, Resources resource) throws PersistenceException, SQLException {
 		if (dialog != null) {
 //			System.out.println("about to show dialog");
-			ApplicationFrame.getInstance().setRecordClean();
+			mainFrame.setRecordClean();
 			dialog.showDialog();
-			if (ApplicationFrame.getInstance().getRecordDirty()) {
+			if (mainFrame.getRecordDirty()) {
 				access.updateLongSession(resource);
 			} else {
 				access.closeLongSession();

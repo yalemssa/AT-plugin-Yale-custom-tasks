@@ -155,9 +155,15 @@ public class YaleAlternatingRowColorTable extends JTable{
 	}
 
 	protected Color forgroundColorForRow(int row) {
-//		SortedList<DomainObject> sortedList = (SortedList<DomainObject>)this.getSortedList();
 		BoxLookupReturnRecords boxLookupReturnRecord = (BoxLookupReturnRecords)sortedList.get(row);
-		return boxLookupReturnRecord.isRestriction() ? alternateForegroundColor : getForeground();
+
+        Boolean restriction = boxLookupReturnRecord.isRestriction();
+
+        if(restriction != null && restriction) {
+            return alternateForegroundColor;
+        } else {
+            return getForeground();
+        }
 	}
 
 

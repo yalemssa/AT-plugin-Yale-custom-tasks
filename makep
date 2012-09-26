@@ -5,8 +5,8 @@ cd out/production/YalePluginTasks
 
 zip -rv YalePluginTasks.zip . -i \*.class *.xml
 
-cp -v YalePluginTasks.zip /Users/leemandell/archivistsToolkit/atProject/plugins
-cp -v YalePluginTasks.zip /Users/leemandell/archivistsToolkit/vanilla\ AT\ 2.0/plugins
+cp -v YalePluginTasks.zip /cygdrive/c/Users/nathan/Documents/IdeaProjects/AT/plugins
+
+cp -v YalePluginTasks.zip /cygdrive/c/Users/nathan/TestAT/Archivists\ Toolkit\ 2.0/plugins
 
 #just adding a comment to test out git commit
-
