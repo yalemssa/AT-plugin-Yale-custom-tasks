@@ -52,6 +52,8 @@ public class BoxLookupAndUpdate {
 
     private DomainAccessObject locationDAO;
 
+    private DomainAccessObject instanceDAO;
+
     private Connection con;
 
     // prepared statements used when searching
@@ -103,6 +105,13 @@ public class BoxLookupAndUpdate {
                 "FROM ArchDescriptionInstances\n" +
                 "WHERE resourceComponentId in (?)";
         instanceLookupByComponent = con.prepareStatement(sqlString);
+    }
+
+    /**
+     * init the domain access objects for getting instances
+     */
+    public void initDAO() throws Exception {
+        instanceDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(ArchDescriptionInstances.class);
     }
 
     public void doSearch(String msNumber, String ruNumber, String seriesTitle, String accessionNumber, String boxNumber, BoxLookupReturnScreen returnSrceen) {
@@ -248,7 +257,7 @@ public class BoxLookupAndUpdate {
      * @param useCashe
      * @return Collection Containing resources
      */
-    public Collection<BoxLookupReturnRecords> findBoxesForResource(Resources record, InfiniteProgressPanel monitor, boolean useCashe) {
+    public Collection<BoxLookupReturnRecords> gatherContainersJDBC(Resources record, InfiniteProgressPanel monitor, boolean useCashe) {
         Long resourceId = record.getResourceId();
 
         // if there is a cache set, use that
@@ -425,6 +434,11 @@ public class BoxLookupAndUpdate {
         TreeMap<String, BoxLookupReturnRecords> containers =
                 new TreeMap<String, BoxLookupReturnRecords>();
 
+        // if there is a cache set, use that
+        if(useCache && boxLookup.containsKey(record.getIdentifier())) {
+            return boxLookup.get(record.getIdentifier());
+        }
+
         monitor.setTextLine("Resource: " + record.getTitle(), 2);
 
         // reset the instance count and begin the time
@@ -442,6 +456,11 @@ public class BoxLookupAndUpdate {
         }
 
         ArrayList<BoxLookupReturnRecords> returnValues = new ArrayList<BoxLookupReturnRecords>(containers.values());
+
+        //store a copy of this for future access
+        if(useCache) {
+            boxLookup.put(record.getIdentifier(), returnValues);
+        }
 
         // print out the time it took for the search process
         System.out.println("Total Instances: " + instanceCount);

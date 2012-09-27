@@ -186,7 +186,15 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                         Resources resource = (Resources) worksurfaceTable.getFilteredList().get(worksurfaceTable.getSelectedRow());
 
-                        final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(resource, monitor, true);
+                        try {
+                            resource = (Resources) access.findByPrimaryKeyLongSession(resource.getIdentifier());
+                        } catch (LookupException e) {
+                            e.printStackTrace();
+                            return;
+                        }
+
+                        //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(resource, monitor, true);
+                        final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainers(resource, monitor, true);
 
                         // close the monitor
                         monitor.close();

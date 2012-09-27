@@ -87,7 +87,7 @@ public class YalePluginTasksFrame extends JFrame {
                                 boxLookupAndUpdate = new BoxLookupAndUpdate();
                             }
 
-                            //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.findBoxesForResource(record, monitor, true);
+                            //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(record, monitor, true);
                             final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainers(record, monitor, true);
 
                             /* test performance
