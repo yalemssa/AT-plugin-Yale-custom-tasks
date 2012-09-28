@@ -31,7 +31,11 @@ public class BoxLookupReturnRecords implements Comparable{
 	private String boxLabel;
 	private String containerType;
     private String instanceIds;
+
+    private String topLevelContainerName; // used for sorting
+
     private Long locationId;
+
     private int resourceRecordVersion = 0; // used to make indexing faster
 
     public BoxLookupReturnRecords(String collectionId,
@@ -50,6 +54,9 @@ public class BoxLookupReturnRecords implements Comparable{
 		this.restriction = restriction;
 		this.boxLabel = boxLabel;
 		this.containerType = containerType;
+
+        // set the top level container name
+        topLevelContainerName = boxLabel + " (" + barcode +") ";
 	}
 
 	public String getCollectionId() {
@@ -130,5 +137,31 @@ public class BoxLookupReturnRecords implements Comparable{
         } else {
             this.instanceIds += ", " + instanceId;
         }
+    }
+
+    /**
+     * Get the top level container name
+     *
+     * @return
+     */
+    public String getTopLevelContainerName() {
+        return topLevelContainerName;
+    }
+
+    /**
+     * Set the top level container name used for sorting
+     * @param topLevelContainerName
+     */
+    public void setTopLevelContainerName(String topLevelContainerName) {
+        this.topLevelContainerName = topLevelContainerName;
+    }
+
+    /**
+     * Custom to string method
+     *
+     * @return
+     */
+    public String toString() {
+        return topLevelContainerName;
     }
 }

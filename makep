@@ -5,8 +5,12 @@ cd out/production/YalePluginTasks
 
 zip -rv YalePluginTasks.zip . -i \*.class *.xml
 
-cp -v YalePluginTasks.zip /cygdrive/c/Users/nathan/Documents/IdeaProjects/AT/plugins
+# copy to correct directory on macbook pro
+cp -v YalePluginTasks.zip /Users/nathan/IdeaProjects/AT/plugins
+cp -v YalePluginTasks.zip /Users/nathan/TestAT/Archivists\ Toolkit\ 2.0/plugins
 
+
+# copy to correct directory on windows
+cp -v YalePluginTasks.zip /cygdrive/c/Users/nathan/Documents/IdeaProjects/AT/plugins
 cp -v YalePluginTasks.zip /cygdrive/c/Users/nathan/TestAT/Archivists\ Toolkit\ 2.0/plugins
 
-#just adding a comment to test out git commit

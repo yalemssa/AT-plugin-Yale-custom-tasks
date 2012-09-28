@@ -34,11 +34,8 @@ import edu.yale.plugins.tasks.table.BoxReturnRecordsFilterator;
 import edu.yale.plugins.tasks.table.YaleAlternatingRowColorTable;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import edu.yale.plugins.tasks.voyager.VoyagerInputValuesDialog;
-import org.archiviststoolkit.ApplicationFrame;
 import org.archiviststoolkit.dialog.ErrorDialog;
 import org.archiviststoolkit.editor.LocationEditor;
-import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
-import org.archiviststoolkit.model.ContainerGroup;
 import org.archiviststoolkit.model.Locations;
 import org.archiviststoolkit.mydomain.*;
 import org.archiviststoolkit.util.LocationsUtils;
@@ -117,7 +114,6 @@ public class YaleLocationAssignmentResources extends JDialog {
             try {
                 DomainAccessObject access = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
                 access.add(instance);
-//				DomainObject link =  accessionsModel.addLocation(instance);
                 LocationsUtils.addLocationToLookupList(instance);
                 initLookup();
                 filterField.setText(instance.getBuilding() + " " + instance.getCoordinates());
@@ -141,25 +137,43 @@ public class YaleLocationAssignmentResources extends JDialog {
     }
 
     private void removeAssignedLocationButtonActionPerformed(ActionEvent e) {
-        /*if (containerList.getSelectedIndex() == -1) {
+        if (containerLookupTable.getSelectedRow() == -1) {
             JOptionPane.showMessageDialog(this, "You must select a container first.");
         } else {
-            Object[] selectedContainers = containerList.getSelectedValues();
+            int[] selectedRows = containerLookupTable.getSelectedRows();
 
             int response = JOptionPane.showConfirmDialog(this,
-                    "Are you sure you want to remove " + selectedContainers.length + " linked location(s)",
+                    "Are you sure you want to remove " + selectedRows.length + " linked location(s)",
                     "Remove Linked Location", JOptionPane.YES_NO_OPTION);
 
             if (response == JOptionPane.OK_OPTION) {
-                for (Object o : selectedContainers) {
-                    ((ContainerGroup) o).setLocations(null);
+
+                BoxLookupReturnRecords boxRecord = null;
+
+                try {
+                    // for each box record update all the instances associated with each
+                    int totalInstances = 0;
+
+                    for (int i : selectedRows) {
+                        boxRecord = containerTableModel.getElementAt(i);
+                        String instanceIds = boxRecord.getInstanceIds();
+
+                        totalInstances += boxLookupAndUpdate.updateInstanceLocation(instanceIds, null);
+
+                        // update the box location information now with blank string
+                        boxRecord.setLocation("");
+                    }
+
+                    System.out.println("Total # of Instances Updated: " + totalInstances);
+                } catch (Exception e1) {
+                    showInstanceUpdateErrorDialog(boxRecord.toString());
+                    e1.printStackTrace();
                 }
-                //set the record to dirty
-                ApplicationFrame.getInstance().setRecordDirty();
-                containerList.invalidate();
-                containerList.repaint();
+
+                containerLookupTable.invalidate();
+                containerLookupTable.repaint();
             }
-        }*/
+        }
     }
 
     private void assignContainerInformationActionPerformed(ActionEvent e) {
@@ -173,9 +187,9 @@ public class YaleLocationAssignmentResources extends JDialog {
             int status = dialog.showDialog();
 
             if (status == JOptionPane.OK_OPTION) {
-                try {
-                    BoxLookupAndUpdate boxUpdater = new BoxLookupAndUpdate();
+                BoxLookupReturnRecords boxRecord = null;
 
+                try {
                     String barcode = dialog.getBarcode();
                     String container3Type = dialog.getContainer3Type();
                     String userDefinedString2 = dialog.getUserDefinedString2();
@@ -187,15 +201,11 @@ public class YaleLocationAssignmentResources extends JDialog {
                     int[] selectedRows = containerLookupTable.getSelectedRows();
 
                     for (int i : selectedRows) {
-                        BoxLookupReturnRecords boxRecord = containerTableModel.getElementAt(i);
+                        boxRecord = containerTableModel.getElementAt(i);
                         String instanceIds = boxRecord.getInstanceIds();
 
-                        if (barcode.length() != 0) {
-                            boxRecord.setBarcode(barcode);
-                        }
-
                         // use the box updater class to make updates using sql calls
-                        boxUpdater.updateInstanceInformation(
+                        String topLevelContainerName = boxLookupAndUpdate.updateInstanceInformation(
                                 instanceIds,
                                 barcode,
                                 container3Type,
@@ -206,31 +216,18 @@ public class YaleLocationAssignmentResources extends JDialog {
                                 exportedToVoyager
                         );
 
-                        /*for (ArchDescriptionAnalogInstances instance : group.getInstances()) {
-                            if (barcode.length() != 0) {
-                                instance.setBarcode(barcode);
-                            }
-                            if (container3Type.length() != 0) {
-                                instance.setContainer3Type(container3Type);
-                            }
-                            if (userDefinedString2.length() != 0) {
-                                instance.setUserDefinedString2(userDefinedString2);
-                            }
-                            if (dialog.restrictionChange()) {
-                                instance.setUserDefinedBoolean1(dialog.newRestrictionValue());
-                            }
-                            if (dialog.exportedToVoyagerChange()) {
-                                instance.setUserDefinedBoolean2(dialog.newExportedToVoyagerValue());
-                            }
+                        //update the box record values now
+                        if (barcode.length() != 0) {
+                            boxRecord.setBarcode(barcode);
+                        }
 
-                            //boxRecord.setTopLevelContainerName(instance.getTopLevelLabel() + " (" + instance.getBarcode() + ")");
-                        }*/
+                        boxRecord.setTopLevelContainerName(topLevelContainerName);
                     }
-                } catch (Exception error) {
-                    error.printStackTrace();
+                } catch (Exception e1) {
+                    showInstanceUpdateErrorDialog(boxRecord.toString());
+
+                    e1.printStackTrace();
                 }
-                //set the record to dirty
-                //ApplicationFrame.getInstance().setRecordDirty();
 
                 containerLookupTable.invalidate();
                 containerLookupTable.repaint();
@@ -259,7 +256,7 @@ public class YaleLocationAssignmentResources extends JDialog {
                 //just one container was selected so build the array starting at that index
                 lastContainerIndex = containerListValues.size();
             } else {
-                lastContainerIndex = selectedRows[selectedRows.length -1];
+                lastContainerIndex = selectedRows[selectedRows.length - 1];
             }
 
             // the barcode string
@@ -273,16 +270,14 @@ public class YaleLocationAssignmentResources extends JDialog {
                 if (barcode != null && barcode.length() != 0) {
                     boxRecord.setBarcode(barcode);
                     String instanceIds = boxRecord.getInstanceIds();
+
                     try {
                         boxLookupAndUpdate.updateBarcode(instanceIds, barcode);
                     } catch (Exception e1) {
+                        showInstanceUpdateErrorDialog(boxRecord.toString());
                         e1.printStackTrace();
                     }
 
-                    /*for (ArchDescriptionAnalogInstances instance : containerGroup.getInstances()) {
-                        instance.setBarcode(barcode);
-                        containerGroup.setBarcode(instance.getTopLevelLabel() + " (" + instance.getBarcode() + ")");
-                    }*/
                 } else {
                     //break out of the for loop since cancel was pressed
                     break;
@@ -298,21 +293,70 @@ public class YaleLocationAssignmentResources extends JDialog {
         VoyagerInputValuesDialog dialog = new VoyagerInputValuesDialog(this);
 
         if (dialog.showDialog() == JOptionPane.OK_OPTION) {
-            String bibHolding = dialog.getKeyHolding();
+            // disable the UI buttons and set the progress monitor moving
+            setUIButtonsEnable(false);
+            updateProgressBar.setStringPainted(true);
+            updateProgressBar.setString("Updating Voyager Info ..."); // this doesn't show up!
+            updateProgressBar.setIndeterminate(true);
 
-            for (BoxLookupReturnRecords boxRecord : containerListValues) {
-                try {
-                    boxLookupAndUpdate.updateVoyagerInformation(boxRecord.getInstanceIds(), bibHolding);
-                } catch (Exception e1) {
-                    e1.printStackTrace();
+            final String bibHolding = dialog.getKeyHolding();
+
+            // run the update process in a separate thread
+            Thread performer = new Thread(new Runnable() {
+                public void run() {
+                    int totalInstances = 0;
+
+                    for (BoxLookupReturnRecords boxRecord : containerListValues) {
+                        try {
+                            // need to show a progress dialog here and call update voyager info in thread
+                            totalInstances += boxLookupAndUpdate.updateVoyagerInformation(boxRecord.getInstanceIds(), bibHolding);
+                        } catch (Exception e1) {
+                            showInstanceUpdateErrorDialog(boxRecord.toString());
+                            e1.printStackTrace();
+                        }
+                    }
+
+                    System.out.println("Total # of Instances Updated: " + totalInstances);
+
+                    // re-enable the ui buttons
+                    setUIButtonsEnable(true);
+                    updateProgressBar.setStringPainted(false);
+                    updateProgressBar.setIndeterminate(false);
                 }
-                /*for (ArchDescriptionAnalogInstances instance : containerGroup.getInstances()) {
-                    instance.setUserDefinedString1(bibHolding);
-                }*/
-            }
+            });
+
+            // start the thread now
+            performer.start();
         }
     }
 
+    /**
+     * Method used to enable or disable the UI buttons when doing a long task in a thread
+     *
+     * @param enable
+     */
+    private void setUIButtonsEnable(boolean enable) {
+        assignContainerInformation.setEnabled(enable);
+        rapidBarcodeEntry.setEnabled(enable);
+        assignVoyagerInfo.setEnabled(enable);
+        assignLocation.setEnabled(enable);
+        removeAssignedLocationButton.setEnabled(enable);
+        createLocationButton.setEnabled(enable);
+        doneButton.setEnabled(enable);
+    }
+
+    /**
+     * Method to display an error dialog indicating an error occurred while updating
+     * instance information
+     *
+     * @param containerName
+     */
+    private void showInstanceUpdateErrorDialog(String containerName) {
+        JOptionPane.showMessageDialog(parentFrame,
+                "Failed to update instances for container " + containerName,
+                "Instance Update Fail",
+                JOptionPane.ERROR_MESSAGE);
+    }
 
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
@@ -334,6 +378,7 @@ public class YaleLocationAssignmentResources extends JDialog {
         assignContainerInformation = new JButton();
         rapidBarcodeEntry = new JButton();
         assignVoyagerInfo = new JButton();
+        updateProgressBar = new JProgressBar();
         separator5 = new JSeparator();
         label1 = new JLabel();
         panel1 = new JPanel();
@@ -367,26 +412,26 @@ public class YaleLocationAssignmentResources extends JDialog {
                 HeaderPanel.setOpaque(false);
                 HeaderPanel.setFont(new Font("Trebuchet MS", Font.PLAIN, 13));
                 HeaderPanel.setLayout(new FormLayout(
-                    new ColumnSpec[] {
-                        new ColumnSpec(Sizes.bounded(Sizes.MINIMUM, Sizes.dluX(100), Sizes.dluX(200))),
-                        new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                    },
-                    RowSpec.decodeSpecs("default")));
+                        new ColumnSpec[]{
+                                new ColumnSpec(Sizes.bounded(Sizes.MINIMUM, Sizes.dluX(100), Sizes.dluX(200))),
+                                new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                        },
+                        RowSpec.decodeSpecs("default")));
 
                 //======== panel2 ========
                 {
                     panel2.setBackground(new Color(73, 43, 104));
                     panel2.setFont(new Font("Trebuchet MS", Font.PLAIN, 13));
                     panel2.setLayout(new FormLayout(
-                        new ColumnSpec[] {
-                            FormFactory.RELATED_GAP_COLSPEC,
-                            new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                        },
-                        new RowSpec[] {
-                            FormFactory.RELATED_GAP_ROWSPEC,
-                            FormFactory.DEFAULT_ROWSPEC,
-                            FormFactory.RELATED_GAP_ROWSPEC
-                        }));
+                            new ColumnSpec[]{
+                                    FormFactory.RELATED_GAP_COLSPEC,
+                                    new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                            },
+                            new RowSpec[]{
+                                    FormFactory.RELATED_GAP_ROWSPEC,
+                                    FormFactory.DEFAULT_ROWSPEC,
+                                    FormFactory.RELATED_GAP_ROWSPEC
+                            }));
 
                     //---- mainHeaderLabel ----
                     mainHeaderLabel.setText("Resources");
@@ -401,15 +446,15 @@ public class YaleLocationAssignmentResources extends JDialog {
                     panel3.setBackground(new Color(66, 60, 111));
                     panel3.setFont(new Font("Trebuchet MS", Font.PLAIN, 13));
                     panel3.setLayout(new FormLayout(
-                        new ColumnSpec[] {
-                            FormFactory.RELATED_GAP_COLSPEC,
-                            new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                        },
-                        new RowSpec[] {
-                            FormFactory.RELATED_GAP_ROWSPEC,
-                            FormFactory.DEFAULT_ROWSPEC,
-                            FormFactory.RELATED_GAP_ROWSPEC
-                        }));
+                            new ColumnSpec[]{
+                                    FormFactory.RELATED_GAP_COLSPEC,
+                                    new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                            },
+                            new RowSpec[]{
+                                    FormFactory.RELATED_GAP_ROWSPEC,
+                                    FormFactory.DEFAULT_ROWSPEC,
+                                    FormFactory.RELATED_GAP_ROWSPEC
+                            }));
 
                     //---- subHeaderLabel ----
                     subHeaderLabel.setText("Assign Locations");
@@ -427,31 +472,31 @@ public class YaleLocationAssignmentResources extends JDialog {
                 contentPane.setMinimumSize(new Dimension(600, 600));
                 contentPane.setOpaque(false);
                 contentPane.setLayout(new FormLayout(
-                    new ColumnSpec[] {
-                        FormFactory.UNRELATED_GAP_COLSPEC,
-                        new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
-                        FormFactory.UNRELATED_GAP_COLSPEC
-                    },
-                    new RowSpec[] {
-                        FormFactory.UNRELATED_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        new RowSpec(RowSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        new RowSpec(RowSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
-                        FormFactory.LINE_GAP_ROWSPEC,
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.UNRELATED_GAP_ROWSPEC
-                    }));
+                        new ColumnSpec[]{
+                                FormFactory.UNRELATED_GAP_COLSPEC,
+                                new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
+                                FormFactory.UNRELATED_GAP_COLSPEC
+                        },
+                        new RowSpec[]{
+                                FormFactory.UNRELATED_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                new RowSpec(RowSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                new RowSpec(RowSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
+                                FormFactory.LINE_GAP_ROWSPEC,
+                                FormFactory.DEFAULT_ROWSPEC,
+                                FormFactory.UNRELATED_GAP_ROWSPEC
+                        }));
 
                 //---- containerLabel ----
                 containerLabel.setText("Containers");
@@ -461,12 +506,12 @@ public class YaleLocationAssignmentResources extends JDialog {
                 {
                     panel5.setOpaque(false);
                     panel5.setLayout(new FormLayout(
-                        new ColumnSpec[] {
-                            FormFactory.DEFAULT_COLSPEC,
-                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                            new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                        },
-                        RowSpec.decodeSpecs("default")));
+                            new ColumnSpec[]{
+                                    FormFactory.DEFAULT_COLSPEC,
+                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                    new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                            },
+                            RowSpec.decodeSpecs("default")));
 
                     //---- label4 ----
                     label4.setText("Filter: ");
@@ -487,14 +532,16 @@ public class YaleLocationAssignmentResources extends JDialog {
                 {
                     panel4.setOpaque(false);
                     panel4.setLayout(new FormLayout(
-                        new ColumnSpec[] {
-                            FormFactory.DEFAULT_COLSPEC,
-                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                            FormFactory.DEFAULT_COLSPEC,
-                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                            FormFactory.DEFAULT_COLSPEC
-                        },
-                        RowSpec.decodeSpecs("default")));
+                            new ColumnSpec[]{
+                                    FormFactory.DEFAULT_COLSPEC,
+                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                    FormFactory.DEFAULT_COLSPEC,
+                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                    FormFactory.DEFAULT_COLSPEC,
+                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                    new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                            },
+                            RowSpec.decodeSpecs("default")));
 
                     //---- assignContainerInformation ----
                     assignContainerInformation.setText("Assign Container Information");
@@ -522,6 +569,7 @@ public class YaleLocationAssignmentResources extends JDialog {
                         }
                     });
                     panel4.add(assignVoyagerInfo, cc.xy(5, 1));
+                    panel4.add(updateProgressBar, cc.xy(7, 1));
                 }
                 contentPane.add(panel4, cc.xy(2, 8));
 
@@ -540,12 +588,12 @@ public class YaleLocationAssignmentResources extends JDialog {
                 {
                     panel1.setOpaque(false);
                     panel1.setLayout(new FormLayout(
-                        new ColumnSpec[] {
-                            FormFactory.DEFAULT_COLSPEC,
-                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                            new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
-                        },
-                        RowSpec.decodeSpecs("default")));
+                            new ColumnSpec[]{
+                                    FormFactory.DEFAULT_COLSPEC,
+                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                    new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW)
+                            },
+                            RowSpec.decodeSpecs("default")));
 
                     //---- label2 ----
                     label2.setText("Filter:");
@@ -571,17 +619,17 @@ public class YaleLocationAssignmentResources extends JDialog {
                     buttonBar.setBackground(new Color(231, 188, 251));
                     buttonBar.setOpaque(false);
                     buttonBar.setLayout(new FormLayout(
-                        new ColumnSpec[] {
-                            FormFactory.GLUE_COLSPEC,
-                            FormFactory.BUTTON_COLSPEC,
-                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                            FormFactory.DEFAULT_COLSPEC,
-                            FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                            FormFactory.DEFAULT_COLSPEC,
-                            FormFactory.RELATED_GAP_COLSPEC,
-                            FormFactory.BUTTON_COLSPEC
-                        },
-                        RowSpec.decodeSpecs("pref")));
+                            new ColumnSpec[]{
+                                    FormFactory.GLUE_COLSPEC,
+                                    FormFactory.BUTTON_COLSPEC,
+                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                    FormFactory.DEFAULT_COLSPEC,
+                                    FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                                    FormFactory.DEFAULT_COLSPEC,
+                                    FormFactory.RELATED_GAP_COLSPEC,
+                                    FormFactory.BUTTON_COLSPEC
+                            },
+                            RowSpec.decodeSpecs("pref")));
 
                     //---- assignLocation ----
                     assignLocation.setText("Add Location Link");
@@ -635,28 +683,42 @@ public class YaleLocationAssignmentResources extends JDialog {
         // JFormDesigner - End of component initialization  //GEN-END:initComponents
     }
 
-    public JList getContainerList() {
-        //return containerList;
-        return null;
-    }
-
     private void assignLocationButtonActionPerformed(ActionEvent e) {
-        /*if (locationLookupTable.getSelectedRow() == -1) {
+        if (locationLookupTable.getSelectedRow() == -1) {
             JOptionPane.showMessageDialog(this, "You must select a location first.");
-        } else if (containerList.getSelectedIndex() == -1) {
+        } else if (containerLookupTable.getSelectedRow() == -1) {
             JOptionPane.showMessageDialog(this, "You must select a container first.");
         } else {
             int selectedRow = locationLookupTable.getSelectedRow();
             Locations selectedLocation = (Locations) lookupTableModel.getElementAt(selectedRow);
-            Object[] selectedContainers = containerList.getSelectedValues();
-            for (Object o : selectedContainers) {
-                ((ContainerGroup) o).setLocations(selectedLocation);
+
+            int[] selectedRows = containerLookupTable.getSelectedRows();
+            BoxLookupReturnRecords boxRecord = null;
+
+            try {
+                // for each box record update all the instances associated with each
+                int totalInstances = 0;
+
+                for (int i : selectedRows) {
+                    boxRecord = containerTableModel.getElementAt(i);
+                    String instanceIds = boxRecord.getInstanceIds();
+
+                    totalInstances += boxLookupAndUpdate.updateInstanceLocation(instanceIds, selectedLocation);
+
+                    // update the box information now
+                    boxRecord.setLocation(selectedLocation.toString());
+                }
+
+                System.out.println("Total # of Instances Updated: " + totalInstances);
+            } catch (Exception e1) {
+                showInstanceUpdateErrorDialog(boxRecord.toString());
+                e1.printStackTrace();
             }
-            //set the record to dirty
-            ApplicationFrame.getInstance().setRecordDirty();
-            containerList.invalidate();
-            containerList.repaint();
-        }*/
+
+            // update the table
+            containerLookupTable.invalidate();
+            containerLookupTable.repaint();
+        }
     }
 
     private void doneButtonActionPerformed(ActionEvent e) {
@@ -690,6 +752,7 @@ public class YaleLocationAssignmentResources extends JDialog {
     private JButton assignContainerInformation;
     private JButton rapidBarcodeEntry;
     private JButton assignVoyagerInfo;
+    private JProgressBar updateProgressBar;
     private JSeparator separator5;
     private JLabel label1;
     private JPanel panel1;

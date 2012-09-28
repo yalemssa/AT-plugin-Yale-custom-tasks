@@ -119,6 +119,7 @@ public class BoxLookupAndUpdate {
      */
     public void initDAO() throws PersistenceException {
         locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
+        locationDAO.getLongSession();
 
         instanceDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(ArchDescriptionAnalogInstances.class);
         instanceDAO.getLongSession();
@@ -254,180 +255,6 @@ public class BoxLookupAndUpdate {
     }
 
     /**
-     * Method to locate all boxes for a particular resource. It is essentially the doSearch method but only for a
-     * single resource, and the functionality can probable be shared, but for now keep it self contained
-     *
-     * @param record
-     * @param monitor
-     * @param useCashe
-     * @return Collection Containing resources
-     */
-    public Collection<BoxLookupReturnRecords> gatherContainersJDBC(Resources record, InfiniteProgressPanel monitor, boolean useCashe) {
-        Long resourceId = record.getResourceId();
-
-        // if there is a cache set, use that
-        if(useCashe && boxLookup.containsKey(resourceId)) {
-            return boxLookup.get(resourceId);
-        }
-
-        seriesInfo = new TreeMap<String, SeriesInfo>();
-
-        componentTitleLookup = new HashMap<Long, String>();
-
-        Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
-
-        try {
-            // initialize the prepared statements
-            initPreparedStatements();
-            String sqlString = "";
-
-            // get the locations domain access object
-            locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
-
-            String message = "Processing Components ...";
-            System.out.println(message);
-            monitor.setTextLine(message, 2);
-
-            String uniqueId;
-            String hashKey;
-
-            MyTimer timer = new MyTimer();
-            timer.reset();
-
-            componentLookupByResource.setLong(1, resourceId);
-            ResultSet components = componentLookupByResource.executeQuery();
-
-            while (components.next()) {
-                uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
-                //uniqueId = "" + components.getLong("resourceComponentId");
-
-                hashKey = "" + components.getLong("resourceComponentId");
-                if (!seriesInfo.containsKey(hashKey)) {
-                    seriesInfo.put(hashKey, new SeriesInfo(uniqueId, components.getString("title")));
-
-                    message = "Saving Series Info: " + components.getString("title");
-                    System.out.println(message);
-                    monitor.setTextLine(message, 4);
-                }
-
-                recurseThroughComponents(components.getLong("resourceComponentId"),
-                        hashKey,
-                        components.getBoolean("hasChild"),
-                        componentLookupByComponent,
-                        instanceLookupByComponent);
-            }
-
-            ResultSet instances;
-            TreeMap<String, ContainerInfo> containers;
-            String containerLabel;
-            Long componentId;
-            String componentTitle;
-            Double container1NumIndicator;
-            String container1AlphaIndicator;
-
-            // specify the number of series found
-            System.out.println("Series Found: " + seriesInfo.size());
-            int instanceCount = 0;
-            int containerCount = 0;
-
-            for (SeriesInfo series : seriesInfo.values()) {
-                sqlString = "SELECT * " +
-                        "FROM ArchDescriptionInstances\n" +
-                        "WHERE resourceComponentId in (" + series.getComponentIds() + ")";
-
-                System.out.println(sqlString);
-
-                Statement sqlStatement = con.createStatement();
-                instances = sqlStatement.executeQuery(sqlString);
-
-                // for all the instances found find the containers
-                message = "Processing Instances: " + series.seriesTitle;
-                monitor.setTextLine(message, 4);
-                System.out.println(message);
-
-                containers = new TreeMap<String, ContainerInfo>();
-                BoxLookupReturnRecords boxLookupReturnRecord = null;
-
-                while (instances.next()) {
-                    instanceCount++;
-
-                    Long instanceId = instances.getLong("archDescriptionInstancesId");
-                    container1NumIndicator = instances.getDouble("container1NumericIndicator");
-                    container1AlphaIndicator = instances.getString("container1AlphaNumIndicator");
-
-                    containerLabel = createContainerLabel(instances.getString("container1Type"),
-                            container1NumIndicator,
-                            container1AlphaIndicator,
-                            instances.getString("instanceType"));
-                    componentId = instances.getLong("resourceComponentId");
-                    componentTitle = componentTitleLookup.get(componentId);
-
-                    if (!containers.containsKey(containerLabel)) {
-                        containerCount++;
-
-                        // create the container object
-                        ContainerInfo containerInfo = new ContainerInfo(containerLabel,
-                                instances.getString("barcode"),
-                                instances.getBoolean("userDefinedBoolean1"),
-                                getLocationString(instances.getLong("locationId")),
-                                componentTitle,
-                                instances.getString("userDefinedString2"));
-
-                        containers.put(containerLabel, containerInfo);
-
-                        // create and store the BoxLookupReturn Record
-                        boxLookupReturnRecord = new BoxLookupReturnRecords(record.getResourceIdentifier(),
-                                series.getUniqueId(),
-                                containerInfo.getComponentTitle(),
-                                containerInfo.getLocation(),
-                                containerInfo.getBarcode(),
-                                containerInfo.isRestriction(),
-                                containerInfo.getLabel(),
-                                containerInfo.getContainerType());
-
-                        boxLookupReturnRecord.addInstanceId(instanceId);
-                        results.add(boxLookupReturnRecord);
-
-                        logMessage = "Accession Number: " + series.getUniqueId() +
-                                " Series Title: " + series.getSeriesTitle() +
-                                " Container: " + containerInfo.getLabel() +
-                                " Barcode: " + containerInfo.getBarcode() +
-                                " Restrictions: " + containerInfo.isRestriction();
-
-                        message = "Processing Container # " + containerCount + " -- " + logMessage;
-                        monitor.setTextLine(message, 4);
-                        System.out.println(message);
-                    } else {
-                        // add the instance
-                        boxLookupReturnRecord.addInstanceId(instanceId);
-
-                        message = "Processing Instance -- " + instanceId;
-                        monitor.setTextLine(message, 5);
-                        System.out.println(message);
-                    }
-                }
-            }
-
-            if(useCashe) {
-                boxLookup.put(resourceId, results);
-            }
-
-            System.out.println("Total Instances: " + instanceCount);
-            System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
-
-            return results;
-        } catch (SQLException e) {
-            new ErrorDialog("", e).showDialog();
-        } catch (PersistenceException e) {
-            new ErrorDialog("", e).showDialog();
-        } catch (LookupException e) {
-            new ErrorDialog("", e).showDialog();
-        }
-
-        return null;
-    }
-
-    /**
      * Main entry point into doing a recursion
      *
      * @param record
@@ -440,13 +267,13 @@ public class BoxLookupAndUpdate {
                 new TreeMap<String, BoxLookupReturnRecords>();
 
         // if there is a cache set, use that
-        if(useCache && boxLookup.containsKey(record.getIdentifier())) {
+        if (useCache && boxLookup.containsKey(record.getIdentifier())) {
             return boxLookup.get(record.getIdentifier());
         }
 
         monitor.setTextLine("Resource: " + record.getTitle(), 2);
 
-        // reset the instance count and begin the time
+        // reset the instance count and begin the timer
         instanceCount = 0;
         MyTimer timer = new MyTimer();
         timer.reset();
@@ -463,7 +290,7 @@ public class BoxLookupAndUpdate {
         ArrayList<BoxLookupReturnRecords> returnValues = new ArrayList<BoxLookupReturnRecords>(containers.values());
 
         //store a copy of this for future access
-        if(useCache) {
+        if (useCache) {
             boxLookup.put(record.getIdentifier(), returnValues);
         }
 
@@ -475,13 +302,15 @@ public class BoxLookupAndUpdate {
     }
 
     /**
-     * Method to do recursion through all containers and create box lookup return records for them
+     * Method to do recursion through all resource components and create box lookup return
+     * records for their instances
      *
      * @param monitor
      * @param resourceIdentifier
      * @param component
      * @param containers
      * @param depth
+     * @return The number of instances found
      */
     private void gatherContainers(InfiniteProgressPanel monitor,
                                   String resourceIdentifier, ResourcesComponents component,
@@ -497,7 +326,7 @@ public class BoxLookupAndUpdate {
             newInstance = (ArchDescriptionAnalogInstances) o;
             containerName = newInstance.getTopLevelLabel();
 
-            if(StringHelper.isNotEmpty(newInstance.getBarcode())) {
+            if (StringHelper.isNotEmpty(newInstance.getBarcode())) {
                 containerName = newInstance.getTopLevelLabel() + " (" + newInstance.getBarcode() + ")";
             }
 
@@ -508,7 +337,7 @@ public class BoxLookupAndUpdate {
                 String locationName = "";
                 Long locationId;
 
-                if(newInstance.getLocation() != null) {
+                if (newInstance.getLocation() != null) {
                     locationName = newInstance.getLocation().toString();
                     locationId = newInstance.getLocation().getLocationId();
                 }
@@ -521,7 +350,7 @@ public class BoxLookupAndUpdate {
                         newInstance.getBarcode(),
                         newInstance.getUserDefinedBoolean1(),
                         newInstance.getTopLevelLabel(),
-                        newInstance.getContainer1Type());
+                        newInstance.getUserDefinedString2());
 
                 group.addInstanceId(newInstance.getIdentifier());
                 // need to add location id
@@ -654,7 +483,7 @@ public class BoxLookupAndUpdate {
     }
 
     /**
-     * Method to update instance values useing sql statements
+     * Method to update instances of a box record
      *
      * @param instanceIds
      * @param barcode
@@ -664,15 +493,53 @@ public class BoxLookupAndUpdate {
      * @param restriction
      * @param changeExportedToVoyager
      * @param exportedToVoyager
+     * @return String containing the top level container name
      * @throws Exception
      */
-    public void updateInstanceInformation(String instanceIds, String barcode, String container3Type,
+    public String updateInstanceInformation(String instanceIds, String barcode, String container3Type,
                                           String userDefinedString2, Boolean changeRestriction, Boolean restriction,
                                           Boolean changeExportedToVoyager, Boolean exportedToVoyager) throws Exception {
 
-        // create the sql statement for doing the updates
+        // for each id get the analog instance object from the database
+        String[] ids = instanceIds.split(",\\s*");
+        String topLevelContainerName = null;
 
+        for (String id : ids) {
+            Long lid = new Long(id);
 
+            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+
+            // set the top level container name if we have not done so already
+            if(topLevelContainerName == null) {
+                topLevelContainerName = instance.getTopLevelLabel();
+            }
+
+            if (barcode.length() != 0) {
+                instance.setBarcode(barcode);
+                topLevelContainerName += " (" + barcode + ")";
+            }
+
+            if (container3Type.length() != 0) {
+                instance.setContainer3Type(container3Type);
+            }
+
+            if (userDefinedString2.length() != 0) {
+                instance.setUserDefinedString2(userDefinedString2);
+            }
+
+            if (changeRestriction) {
+                instance.setUserDefinedBoolean1(restriction);
+            }
+
+            if (changeExportedToVoyager) {
+                instance.setUserDefinedBoolean2(exportedToVoyager);
+            }
+
+            // update the record in the database now
+            instanceDAO.updateLongSession(instance, false);
+        }
+
+        return topLevelContainerName;
     }
 
     /**
@@ -684,17 +551,75 @@ public class BoxLookupAndUpdate {
     public void updateBarcode(String instanceIds, String barcode) throws Exception {
         String[] ids = instanceIds.split(",\\s*");
 
-        // for each id get the instance object
-        for(String id: ids) {
+        // for each id get the analog instance object from the database
+        for (String id : ids) {
             Long lid = new Long(id);
+
             ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+
             instance.setBarcode(barcode);
+
             instanceDAO.updateLongSession(instance, false);
         }
     }
 
-    public void updateVoyagerInformation(String instanceIds, String bibHolding) throws Exception {
+    /**
+     * Method to update the voyager information for container records/instances
+     *
+     * @param instanceIds
+     * @param bibHolding
+     * @return the number of instances returned
+     * @throws Exception
+     */
+    public int updateVoyagerInformation(String instanceIds, String bibHolding) throws Exception {
+        String[] ids = instanceIds.split(",\\s*");
 
+        // for each id get the analog instance object from the database
+        int count = 0;
+
+        for (String id : ids) {
+            Long lid = new Long(id);
+
+            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+
+            instance.setUserDefinedString1(bibHolding);
+
+            instanceDAO.updateLongSession(instance, false);
+
+            count++;
+        }
+
+        return count;
+    }
+
+
+    /**
+     * Method add a location to a set of analog instance
+     *
+     * @param instanceIds
+     * @param selectedLocation
+     * @return
+     * @throws PersistenceException
+     */
+    public int updateInstanceLocation(String instanceIds, Locations selectedLocation) throws Exception {
+        String[] ids = instanceIds.split(",\\s*");
+
+        // for each id get the analog instance object from the database
+        int count = 0;
+
+        for (String id : ids) {
+            Long lid = new Long(id);
+
+            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+
+            instance.setLocation(selectedLocation);
+
+            instanceDAO.updateLongSession(instance, false);
+
+            count++;
+        }
+
+        return count;
     }
 
     private class ContainerInfo {

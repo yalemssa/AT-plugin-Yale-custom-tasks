@@ -306,6 +306,27 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 	// code that is executed after plugin stops. not used here
 	protected void doStop()  { }
 
+    /**
+     * Method to launch the assignment resources dialog
+     *
+     * @param dialog
+     * @param access
+     * @param resource
+     * @throws PersistenceException
+     * @throws SQLException
+     */
+    private void finishAssignContainerInformation(YaleLocationAssignmentResources dialog, ResourcesDAO access, Resources resource) throws PersistenceException, SQLException {
+		if (dialog != null) {
+			mainFrame.setRecordClean();
+			dialog.showDialog();
+			if (mainFrame.getRecordDirty()) {
+				access.updateLongSession(resource);
+			} else {
+				access.closeLongSession();
+			}
+		}
+	}
+
 	// main method for testing only
 	public static void main(String[] args) {
         // load all the hibernate stuff that the AT application typically does
@@ -318,7 +339,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 	}
 
     /**
-     * Method to load the hibernate engine and initial needed AT data
+     * Method to load the hibernate engine and initial needed when running
+     * as a standalone application
      */
     private static void startHibernate() {
         //get user preferences
@@ -404,19 +426,5 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
             System.exit(1);
         }
     }
-
-	private void finishAssignContainerInformation(YaleLocationAssignmentResources dialog, ResourcesDAO access, Resources resource) throws PersistenceException, SQLException {
-		if (dialog != null) {
-//			System.out.println("about to show dialog");
-			mainFrame.setRecordClean();
-			dialog.showDialog();
-			if (mainFrame.getRecordDirty()) {
-				access.updateLongSession(resource);
-			} else {
-				access.closeLongSession();
-			}
-		}
-	}
-
 
 }
