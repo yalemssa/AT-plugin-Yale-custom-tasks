@@ -70,6 +70,13 @@ public class BoxLookupAndUpdate {
         con = DriverManager.getConnection(SessionFactory.getDatabaseUrl(),
                 SessionFactory.getUserName(),
                 SessionFactory.getPassword());
+
+        // initiate the domain access objects
+        try {
+            initDAO();
+        } catch (PersistenceException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -110,8 +117,11 @@ public class BoxLookupAndUpdate {
     /**
      * init the domain access objects for getting instances
      */
-    public void initDAO() throws Exception {
-        instanceDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(ArchDescriptionInstances.class);
+    public void initDAO() throws PersistenceException {
+        locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
+
+        instanceDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(ArchDescriptionAnalogInstances.class);
+        instanceDAO.getLongSession();
     }
 
     public void doSearch(String msNumber, String ruNumber, String seriesTitle, String accessionNumber, String boxNumber, BoxLookupReturnScreen returnSrceen) {
@@ -127,9 +137,6 @@ public class BoxLookupAndUpdate {
             // initialize the prepared statements
             initPreparedStatements();
             String sqlString = "";
-
-            // get the locations domain access object
-            locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
 
             System.out.println("doing search");
 
@@ -240,8 +247,6 @@ public class BoxLookupAndUpdate {
                 }
             }
         } catch (SQLException e) {
-            new ErrorDialog("", e).showDialog();
-        } catch (PersistenceException e) {
             new ErrorDialog("", e).showDialog();
         } catch (LookupException e) {
             new ErrorDialog("", e).showDialog();
@@ -677,7 +682,15 @@ public class BoxLookupAndUpdate {
      * @param barcode
      */
     public void updateBarcode(String instanceIds, String barcode) throws Exception {
-        //To change body of created methods use File | Settings | File Templates.
+        String[] ids = instanceIds.split(",\\s*");
+
+        // for each id get the instance object
+        for(String id: ids) {
+            Long lid = new Long(id);
+            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+            instance.setBarcode(barcode);
+            instanceDAO.updateLongSession(instance, false);
+        }
     }
 
     public void updateVoyagerInformation(String instanceIds, String bibHolding) throws Exception {
