@@ -29,6 +29,7 @@ import com.jgoodies.forms.factories.Borders;
 import com.jgoodies.forms.factories.FormFactory;
 import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
+import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.table.BoxLookupTableFormat;
 import edu.yale.plugins.tasks.table.BoxReturnRecordsFilterator;
 import edu.yale.plugins.tasks.table.YaleAlternatingRowColorTable;
@@ -64,6 +65,9 @@ public class YaleLocationAssignmentResources extends JDialog {
 
     // The parent frame
     private Frame parentFrame = null;
+
+    // keep track of the total instances
+    private int totalInstances = 0;
 
     public YaleLocationAssignmentResources(Frame owner) {
         super(owner);
@@ -132,10 +136,6 @@ public class YaleLocationAssignmentResources extends JDialog {
         }
     }
 
-    public JButton getCreateLocationButton() {
-        return createLocationButton;
-    }
-
     private void removeAssignedLocationButtonActionPerformed(ActionEvent e) {
         if (containerLookupTable.getSelectedRow() == -1) {
             JOptionPane.showMessageDialog(this, "You must select a container first.");
@@ -152,19 +152,19 @@ public class YaleLocationAssignmentResources extends JDialog {
 
                 try {
                     // for each box record update all the instances associated with each
-                    int totalInstances = 0;
+                    int instances = 0;
 
                     for (int i : selectedRows) {
                         boxRecord = containerTableModel.getElementAt(i);
                         String instanceIds = boxRecord.getInstanceIds();
 
-                        totalInstances += boxLookupAndUpdate.updateInstanceLocation(instanceIds, null);
+                        instances += boxLookupAndUpdate.updateInstanceLocation(instanceIds, null);
 
                         // update the box location information now with blank string
                         boxRecord.setLocation("");
                     }
 
-                    System.out.println("Total # of Instances Updated: " + totalInstances);
+                    System.out.println("Total # of Instances Updated: " + instances);
                 } catch (Exception e1) {
                     showInstanceUpdateErrorDialog(boxRecord.toString());
                     e1.printStackTrace();
@@ -297,19 +297,23 @@ public class YaleLocationAssignmentResources extends JDialog {
             setUIButtonsEnable(false);
             updateProgressBar.setStringPainted(true);
             updateProgressBar.setString("Updating Voyager Info ..."); // this doesn't show up!
-            updateProgressBar.setIndeterminate(true);
+            updateProgressBar.setMinimum(0);
+            updateProgressBar.setMaximum(totalInstances);
 
             final String bibHolding = dialog.getKeyHolding();
 
             // run the update process in a separate thread
             Thread performer = new Thread(new Runnable() {
                 public void run() {
-                    int totalInstances = 0;
+                    int instances = 0;
 
                     for (BoxLookupReturnRecords boxRecord : containerListValues) {
                         try {
                             // need to show a progress dialog here and call update voyager info in thread
-                            totalInstances += boxLookupAndUpdate.updateVoyagerInformation(boxRecord.getInstanceIds(), bibHolding);
+                            instances += boxLookupAndUpdate.updateVoyagerInformation(boxRecord.getInstanceIds(), bibHolding);
+
+                            // update the progress bar
+                            updateProgressBar.setValue(instances);
                         } catch (Exception e1) {
                             showInstanceUpdateErrorDialog(boxRecord.toString());
                             e1.printStackTrace();
@@ -321,7 +325,7 @@ public class YaleLocationAssignmentResources extends JDialog {
                     // re-enable the ui buttons
                     setUIButtonsEnable(true);
                     updateProgressBar.setStringPainted(false);
-                    updateProgressBar.setIndeterminate(false);
+                    updateProgressBar.setValue(0);
                 }
             });
 
@@ -697,19 +701,19 @@ public class YaleLocationAssignmentResources extends JDialog {
 
             try {
                 // for each box record update all the instances associated with each
-                int totalInstances = 0;
+                int instances = 0;
 
                 for (int i : selectedRows) {
                     boxRecord = containerTableModel.getElementAt(i);
                     String instanceIds = boxRecord.getInstanceIds();
 
-                    totalInstances += boxLookupAndUpdate.updateInstanceLocation(instanceIds, selectedLocation);
+                    instances += boxLookupAndUpdate.updateInstanceLocation(instanceIds, selectedLocation);
 
                     // update the box information now
                     boxRecord.setLocation(selectedLocation.toString());
                 }
 
-                System.out.println("Total # of Instances Updated: " + totalInstances);
+                System.out.println("Total # of Instances Updated: " + instances);
             } catch (Exception e1) {
                 showInstanceUpdateErrorDialog(boxRecord.toString());
                 e1.printStackTrace();
@@ -782,10 +786,11 @@ public class YaleLocationAssignmentResources extends JDialog {
     /**
      * Method the list of boxes for this resource record
      *
-     * @param values
+     * @param boxCollection The collection of containers along with some other information
      */
-    public void assignContainerListValues(Collection<BoxLookupReturnRecords> values) {
-        containerListValues = values;
+    public void assignContainerListValues(BoxLookupReturnRecordsCollection boxCollection) {
+        totalInstances = boxCollection.getTotalInstances();
+        containerListValues = boxCollection.getContainers();
         resultsEventList.clear();
         resultsEventList.addAll(containerListValues);
         containerLabel.setText("Containers: " + containerListValues.size() + " found");
@@ -807,7 +812,6 @@ public class YaleLocationAssignmentResources extends JDialog {
      */
 
     public final int showDialog() {
-
         this.pack();
 
         setLocationRelativeTo(getOwner());

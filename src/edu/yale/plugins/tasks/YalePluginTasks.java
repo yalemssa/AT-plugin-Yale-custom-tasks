@@ -3,6 +3,7 @@ package edu.yale.plugins.tasks;
 
 import edu.yale.plugins.tasks.model.ATContainer;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
+import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import edu.yale.plugins.tasks.utils.ContainerGatherer;
 import org.archiviststoolkit.exceptions.UnsupportedDatabaseType;
@@ -194,7 +195,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         }
 
                         //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(resource, monitor, true);
-                        final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainers(resource, monitor, true);
+                        final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainers(resource, monitor, true);
 
                         // close the monitor
                         monitor.close();

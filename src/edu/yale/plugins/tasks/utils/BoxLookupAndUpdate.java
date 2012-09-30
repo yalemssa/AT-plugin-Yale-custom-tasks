@@ -21,6 +21,7 @@
 package edu.yale.plugins.tasks.utils;
 
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
+import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import org.archiviststoolkit.dialog.ErrorDialog;
 import org.archiviststoolkit.model.*;
@@ -44,7 +45,7 @@ public class BoxLookupAndUpdate {
     private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
 
     // used to cached return screen records
-    private HashMap<Long, Collection<BoxLookupReturnRecords>> boxLookup = new HashMap<Long, Collection<BoxLookupReturnRecords>>();
+    private HashMap<Long, BoxLookupReturnRecordsCollection> boxCollection = new HashMap<Long, BoxLookupReturnRecordsCollection>();
 
     private String logMessage = "";
 
@@ -262,13 +263,22 @@ public class BoxLookupAndUpdate {
      * @param useCache
      * @return
      */
-    public Collection<BoxLookupReturnRecords> gatherContainers(Resources record, InfiniteProgressPanel monitor, boolean useCache) {
+    public BoxLookupReturnRecordsCollection gatherContainers(Resources record, InfiniteProgressPanel monitor, boolean useCache) {
         TreeMap<String, BoxLookupReturnRecords> containers =
                 new TreeMap<String, BoxLookupReturnRecords>();
 
         // if there is a cache set, use that
-        if (useCache && boxLookup.containsKey(record.getIdentifier())) {
-            return boxLookup.get(record.getIdentifier());
+        Long resourceId = record.getIdentifier();
+        Long resourceVersion = record.getVersion();
+
+        if (useCache && this.boxCollection.containsKey(resourceId)) {
+            // now check to see if the version matches
+            BoxLookupReturnRecordsCollection boxCollection = this.boxCollection.get(resourceId);
+            if(resourceVersion == boxCollection.getResourceVersion()) {
+                return this.boxCollection.get(record.getIdentifier());
+            } else {
+                System.out.println("Resource version different, regenerating box lookup record");
+            }
         }
 
         monitor.setTextLine("Resource: " + record.getTitle(), 2);
@@ -287,18 +297,20 @@ public class BoxLookupAndUpdate {
             new ErrorDialog("Resource must be saved", e).showDialog();
         }
 
-        ArrayList<BoxLookupReturnRecords> returnValues = new ArrayList<BoxLookupReturnRecords>(containers.values());
+        ArrayList<BoxLookupReturnRecords> boxLookupReturnRecords = new ArrayList<BoxLookupReturnRecords>(containers.values());
+        BoxLookupReturnRecordsCollection boxC = new BoxLookupReturnRecordsCollection(boxLookupReturnRecords,resourceId, resourceVersion,
+                instanceCount);
 
         //store a copy of this for future access
         if (useCache) {
-            boxLookup.put(record.getIdentifier(), returnValues);
+            this.boxCollection.put(record.getIdentifier(), boxC);
         }
 
         // print out the time it took for the search process
         System.out.println("Total Instances: " + instanceCount);
         System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
 
-        return returnValues;
+        return boxC;
     }
 
     /**

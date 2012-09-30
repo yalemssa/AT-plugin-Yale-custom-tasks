@@ -13,6 +13,7 @@ import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.dbdialog.RemoteDBConnectDialog;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
+import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import org.archiviststoolkit.model.ContainerGroup;
 import org.archiviststoolkit.model.Resources;
@@ -88,14 +89,7 @@ public class YalePluginTasksFrame extends JFrame {
                             }
 
                             //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(record, monitor, true);
-                            final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainers(record, monitor, true);
-
-                            /* test performance
-                            MyTimer timer = new MyTimer();
-                            timer.reset();
-                            Collection<ContainerGroup> cg = record.gatherContainers(monitor);
-                            System.out.println("Total Containers: " + cg.size());
-                            System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));*/
+                            final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainers(record, monitor, true);
 
                             monitor.close();
 
