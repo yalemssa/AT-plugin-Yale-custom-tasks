@@ -190,6 +190,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         try {
                             resource = (Resources) access.findByPrimaryKeyLongSession(resource.getIdentifier());
                         } catch (LookupException e) {
+                            JOptionPane.showMessageDialog(mainFrame, "Unable to load resource record");
                             e.printStackTrace();
                             return;
                         }

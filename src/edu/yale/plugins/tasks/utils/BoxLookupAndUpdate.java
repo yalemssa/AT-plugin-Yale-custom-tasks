@@ -273,11 +273,11 @@ public class BoxLookupAndUpdate {
 
         if (useCache && this.boxCollection.containsKey(resourceId)) {
             // now check to see if the version matches
-            BoxLookupReturnRecordsCollection boxCollection = this.boxCollection.get(resourceId);
-            if(resourceVersion == boxCollection.getResourceVersion()) {
+            BoxLookupReturnRecordsCollection boxC = this.boxCollection.get(resourceId);
+            if(resourceVersion.equals(boxC.getResourceVersion())) {
                 return this.boxCollection.get(record.getIdentifier());
             } else {
-                System.out.println("Resource version different, regenerating box lookup record");
+                System.out.println("Resource version different, regenerating box lookup collection");
             }
         }
 
@@ -298,8 +298,8 @@ public class BoxLookupAndUpdate {
         }
 
         ArrayList<BoxLookupReturnRecords> boxLookupReturnRecords = new ArrayList<BoxLookupReturnRecords>(containers.values());
-        BoxLookupReturnRecordsCollection boxC = new BoxLookupReturnRecordsCollection(boxLookupReturnRecords,resourceId, resourceVersion,
-                instanceCount);
+        BoxLookupReturnRecordsCollection boxC = new BoxLookupReturnRecordsCollection(boxLookupReturnRecords,
+                resourceId, resourceVersion, instanceCount);
 
         //store a copy of this for future access
         if (useCache) {
