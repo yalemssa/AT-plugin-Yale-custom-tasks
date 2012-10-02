@@ -45,11 +45,9 @@ public class BoxLookupAndUpdate {
     private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
 
     // used to cached return screen records
-    private HashMap<Long, BoxLookupReturnRecordsCollection> boxCollection = new HashMap<Long, BoxLookupReturnRecordsCollection>();
+    private HashMap<Long, BoxLookupReturnRecordsCollection> boxCollections = new HashMap<Long, BoxLookupReturnRecordsCollection>();
 
     private String logMessage = "";
-
-    private Collection<BoxLookupReturnRecords> results = new ArrayList<BoxLookupReturnRecords>();
 
     private DomainAccessObject locationDAO;
 
@@ -201,8 +199,11 @@ public class BoxLookupAndUpdate {
                 for (SeriesInfo series : seriesInfo.values()) {
                     sqlString = "SELECT * " +
                             "FROM ArchDescriptionInstances\n" +
-                            "WHERE resourceComponentId in (" + series.getComponentIds() + ")";
+                            "WHERE resourceComponentId in (" + series.getComponentIds() + ") \n" +
+                            "AND instanceDescriminator = 'analog'";
+
                     System.out.println(sqlString);
+
                     Statement sqlStatement = con.createStatement();
                     instances = sqlStatement.executeQuery(sqlString);
                     containers = new TreeMap<String, ContainerInfo>();
@@ -238,7 +239,7 @@ public class BoxLookupAndUpdate {
                                 container.getLabel(),
                                 container.getContainerType()));
                         logMessage += "\nAccession Number: " + series.getUniqueId() +
-                                " Sereis Title: " + series.getSeriesTitle() +
+                                " Series Title: " + series.getSeriesTitle() +
                                 " Container: " + container.getLabel() +
                                 " Barcode: " + container.getBarcode() +
                                 " Restrictions: " + container.isRestriction();
@@ -253,6 +254,195 @@ public class BoxLookupAndUpdate {
         } catch (LookupException e) {
             new ErrorDialog("", e).showDialog();
         }
+    }
+    /**
+     * Method to locate all boxes for a particular resource. It is essentially the doSearch method but only for a
+     * single resource, and the functionality can probable be shared, but for now keep it self contained
+     *
+     * @param record
+     * @param monitor
+     * @param useCache
+     * @return Collection Containing resources
+     */
+    public BoxLookupReturnRecordsCollection gatherContainersBySeries(Resources record, InfiniteProgressPanel monitor, boolean useCache) {
+        Long resourceId = record.getIdentifier();
+        Long resourceVersion = record.getVersion();
+
+        // see if to just return the cache result
+        if (useCache && this.boxCollections.containsKey(resourceId)) {
+            // now check to see if the version matches
+            BoxLookupReturnRecordsCollection boxC = this.boxCollections.get(resourceId);
+            if(resourceVersion.equals(boxC.getResourceVersion())) {
+                return this.boxCollections.get(record.getIdentifier());
+            } else {
+                System.out.println("Resource version different, regenerating box lookup collection");
+            }
+        }
+
+        seriesInfo = new TreeMap<String, SeriesInfo>();
+
+        componentTitleLookup = new HashMap<Long, String>();
+
+        Collection<BoxLookupReturnRecords> boxRecords = new ArrayList<BoxLookupReturnRecords>();
+
+        try {
+            // initialize the prepared statements
+            initPreparedStatements();
+            String sqlString = "";
+
+            // get the locations domain access object
+            locationDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Locations.class);
+
+            String message = "Processing Components ...";
+            System.out.println(message);
+            monitor.setTextLine(message, 2);
+
+            String uniqueId;
+            String hashKey;
+
+            MyTimer timer = new MyTimer();
+            timer.reset();
+
+            componentLookupByResource.setLong(1, resourceId);
+            ResultSet components = componentLookupByResource.executeQuery();
+
+            while (components.next()) {
+                uniqueId = determineComponentUniqueIdentifier("", components.getString("subdivisionIdentifier"), components.getString("title"));
+                //uniqueId = "" + components.getLong("resourceComponentId");
+
+                hashKey = uniqueId;
+                if (!seriesInfo.containsKey(hashKey)) {
+                    seriesInfo.put(hashKey, new SeriesInfo(uniqueId, components.getString("title")));
+
+                    message = "Gathering Series Info: " + components.getString("title");
+                    System.out.println(message);
+                    monitor.setTextLine(message, 3);
+                }
+
+                recurseThroughComponents(components.getLong("resourceComponentId"),
+                        hashKey,
+                        components.getBoolean("hasChild"),
+                        componentLookupByComponent,
+                        instanceLookupByComponent);
+            }
+
+            ResultSet instances;
+            TreeMap<String, ContainerInfo> containers;
+            String containerLabel;
+            Long componentId;
+            String componentTitle;
+            Double container1NumIndicator;
+            String container1AlphaIndicator;
+
+            // indicate the number of series found
+            message = "Number of Series Found: " + seriesInfo.size();
+            System.out.println(message);
+            monitor.setTextLine(message, 3);
+
+            int instanceCount = 0;
+            int containerCount = 0;
+
+            for (SeriesInfo series : seriesInfo.values()) {
+                sqlString = "SELECT * " +
+                        "FROM ArchDescriptionInstances\n" +
+                        "WHERE resourceComponentId in (" + series.getComponentIds() + ") \n" +
+                        "AND instanceDescriminator = 'analog'";
+
+                System.out.println(sqlString);
+
+                Statement sqlStatement = con.createStatement();
+                instances = sqlStatement.executeQuery(sqlString);
+
+                // for all the instances found find the containers
+                message = "Processing Instances for Series " + series.seriesTitle;
+                monitor.setTextLine(message, 4);
+                System.out.println(message);
+
+                containers = new TreeMap<String, ContainerInfo>();
+                BoxLookupReturnRecords boxLookupReturnRecord = null;
+
+                while (instances.next()) {
+                    instanceCount++;
+
+                    Long instanceId = instances.getLong("archDescriptionInstancesId");
+                    container1NumIndicator = instances.getDouble("container1NumericIndicator");
+                    container1AlphaIndicator = instances.getString("container1AlphaNumIndicator");
+
+                    containerLabel = createContainerLabel(instances.getString("container1Type"),
+                            container1NumIndicator,
+                            container1AlphaIndicator,
+                            instances.getString("instanceType"));
+                    componentId = instances.getLong("resourceComponentId");
+                    componentTitle = componentTitleLookup.get(componentId);
+
+                    if (!containers.containsKey(containerLabel)) {
+                        containerCount++;
+
+                        // create the container object
+                        ContainerInfo containerInfo = new ContainerInfo(containerLabel,
+                                instances.getString("barcode"),
+                                instances.getBoolean("userDefinedBoolean1"),
+                                getLocationString(instances.getLong("locationId")),
+                                componentTitle,
+                                instances.getString("userDefinedString2"));
+
+                        containers.put(containerLabel, containerInfo);
+
+                        // create and store the BoxLookupReturn Record
+                        boxLookupReturnRecord = new BoxLookupReturnRecords(record.getResourceIdentifier(),
+                                series.getUniqueId(),
+                                containerInfo.getComponentTitle(),
+                                containerInfo.getLocation(),
+                                containerInfo.getBarcode(),
+                                containerInfo.isRestriction(),
+                                containerInfo.getLabel(),
+                                containerInfo.getContainerType());
+
+                        boxLookupReturnRecord.addInstanceId(instanceId);
+                        boxRecords.add(boxLookupReturnRecord);
+
+                        logMessage = "Accession Number: " + series.getUniqueId() +
+                                " Series Title: " + series.getSeriesTitle() +
+                                " Container: " + containerInfo.getLabel() +
+                                " Barcode: " + containerInfo.getBarcode() +
+                                " Restrictions: " + containerInfo.isRestriction();
+
+                        message = "Processing Container # " + containerCount + " -- " + logMessage;
+                        monitor.setTextLine(message, 5);
+                        System.out.println(message);
+                    } else {
+                        // add the instance
+                        boxLookupReturnRecord.addInstanceId(instanceId);
+
+                        message = "Adding Instance -- " + containerLabel;
+                        monitor.setTextLine(message, 5);
+                        System.out.println(message);
+                    }
+                }
+            }
+
+            // create the box collection record
+            BoxLookupReturnRecordsCollection boxCollection = new BoxLookupReturnRecordsCollection(boxRecords,
+                    resourceId, resourceVersion, instanceCount);
+
+            // store a copy of this for future access
+            if (useCache) {
+                this.boxCollections.put(record.getIdentifier(), boxCollection);
+            }
+
+            System.out.println("Total Instances: " + instanceCount);
+            System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
+
+            return boxCollection;
+        } catch (SQLException e) {
+            new ErrorDialog("", e).showDialog();
+        } catch (PersistenceException e) {
+            new ErrorDialog("", e).showDialog();
+        } catch (LookupException e) {
+            new ErrorDialog("", e).showDialog();
+        }
+
+        return null;
     }
 
     /**
@@ -271,11 +461,11 @@ public class BoxLookupAndUpdate {
         Long resourceId = record.getIdentifier();
         Long resourceVersion = record.getVersion();
 
-        if (useCache && this.boxCollection.containsKey(resourceId)) {
+        if (useCache && this.boxCollections.containsKey(resourceId)) {
             // now check to see if the version matches
-            BoxLookupReturnRecordsCollection boxC = this.boxCollection.get(resourceId);
+            BoxLookupReturnRecordsCollection boxC = this.boxCollections.get(resourceId);
             if(resourceVersion.equals(boxC.getResourceVersion())) {
-                return this.boxCollection.get(record.getIdentifier());
+                return this.boxCollections.get(record.getIdentifier());
             } else {
                 System.out.println("Resource version different, regenerating box lookup collection");
             }
@@ -298,19 +488,19 @@ public class BoxLookupAndUpdate {
         }
 
         ArrayList<BoxLookupReturnRecords> boxLookupReturnRecords = new ArrayList<BoxLookupReturnRecords>(containers.values());
-        BoxLookupReturnRecordsCollection boxC = new BoxLookupReturnRecordsCollection(boxLookupReturnRecords,
+        BoxLookupReturnRecordsCollection boxCollection = new BoxLookupReturnRecordsCollection(boxLookupReturnRecords,
                 resourceId, resourceVersion, instanceCount);
 
         //store a copy of this for future access
         if (useCache) {
-            this.boxCollection.put(record.getIdentifier(), boxC);
+            this.boxCollections.put(record.getIdentifier(), boxCollection);
         }
 
         // print out the time it took for the search process
         System.out.println("Total Instances: " + instanceCount);
         System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
 
-        return boxC;
+        return boxCollection;
     }
 
     /**

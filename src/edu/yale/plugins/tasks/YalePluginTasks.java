@@ -196,7 +196,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         }
 
                         //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(resource, monitor, true);
-                        final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainers(resource, monitor, true);
+                        final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, true);
 
                         // close the monitor
                         monitor.close();

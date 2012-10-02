@@ -362,6 +362,10 @@ public class YaleLocationAssignmentResources extends JDialog {
                 JOptionPane.ERROR_MESSAGE);
     }
 
+    public JButton getCreateLocationButton() {
+        return createLocationButton;
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner non-commercial license
@@ -793,7 +797,9 @@ public class YaleLocationAssignmentResources extends JDialog {
         containerListValues = boxCollection.getContainers();
         resultsEventList.clear();
         resultsEventList.addAll(containerListValues);
-        containerLabel.setText("Containers: " + containerListValues.size() + " found");
+
+        // update the display now
+        containerLabel.setText("Containers: " + containerListValues.size() + " || Analog Instances: " + totalInstances);
     }
 
     private void initLookup() {
