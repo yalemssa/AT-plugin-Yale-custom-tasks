@@ -268,12 +268,15 @@ public class BoxLookupAndUpdate {
         Long resourceId = record.getIdentifier();
         Long resourceVersion = record.getVersion();
 
+        // try loading the box lookup return record
+        loadBoxLookupReturnRecordFromDatabase(resourceId);
+
         // see if to just return the cache result
-        if (useCache && this.boxCollections.containsKey(resourceId)) {
+        if (useCache && boxCollections.containsKey(resourceId)) {
             // now check to see if the version matches
             BoxLookupReturnRecordsCollection boxC = this.boxCollections.get(resourceId);
             if(resourceVersion.equals(boxC.getResourceVersion())) {
-                return this.boxCollections.get(record.getIdentifier());
+                return boxCollections.get(record.getIdentifier());
             } else {
                 System.out.println("Resource version different, regenerating box lookup collection");
             }
@@ -427,22 +430,37 @@ public class BoxLookupAndUpdate {
 
             // store a copy of this for future access
             if (useCache) {
-                this.boxCollections.put(record.getIdentifier(), boxCollection);
+                boxCollections.put(record.getIdentifier(), boxCollection);
+
+                // save it to the database now
+                PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
             }
 
             System.out.println("Total Instances: " + instanceCount);
             System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
 
             return boxCollection;
-        } catch (SQLException e) {
-            new ErrorDialog("", e).showDialog();
-        } catch (PersistenceException e) {
-            new ErrorDialog("", e).showDialog();
-        } catch (LookupException e) {
+        } catch (Exception e) {
             new ErrorDialog("", e).showDialog();
         }
 
         return null;
+    }
+
+    /**
+     * Method to load box lookup return record from the database
+     *
+     * @param resourceId
+     */
+    private void loadBoxLookupReturnRecordFromDatabase(Long resourceId) {
+        // check to see if this is not already loaded in cache
+        if(!boxCollections.containsKey(resourceId)) {
+            BoxLookupReturnRecordsCollection boxCollection = PluginDataUtils.getBoxLookupReturnRecord(resourceId);
+
+            if(boxCollection != null) {
+                boxCollections.put(resourceId, boxCollection);
+            }
+        }
     }
 
     /**

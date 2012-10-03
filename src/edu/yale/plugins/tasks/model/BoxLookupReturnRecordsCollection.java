@@ -21,6 +21,11 @@ public class BoxLookupReturnRecordsCollection {
 
     /**
      * Default constructor
+     */
+    public BoxLookupReturnRecordsCollection() { }
+
+    /**
+     * Default constructor
      *
      * @param containers
      * @param resourceId

@@ -80,7 +80,9 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     // class finding and storing container information
     BoxLookupAndUpdate boxLookupAndUpdate = null;
 
-	// the default constructor
+    public static final String BOX_RECORD_DATA_NAME = "box_record";
+
+    // the default constructor
 	public YalePluginTasks() { }
 
 	// get the category this plugin belongs to

@@ -38,6 +38,8 @@ public class BoxLookupReturnRecords implements Comparable{
 
     private int resourceRecordVersion = 0; // used to make indexing faster
 
+    public BoxLookupReturnRecords() {}
+
     public BoxLookupReturnRecords(String collectionId,
 								  String uniqueId,
 								  String title,
