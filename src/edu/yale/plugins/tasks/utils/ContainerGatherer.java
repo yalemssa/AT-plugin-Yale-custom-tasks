@@ -75,8 +75,10 @@ public class ContainerGatherer {
 		String key;
 		ArchDescriptionAnalogInstances instance;
 		String instanceLabel;
-		monitor.setTextLine(component.getTitle(), depth);
-		System.out.println("Component: " + component.getTitle() + " has child: " + component.isHasChild());
+
+		if(monitor != null) monitor.setTextLine(component.getTitle(), depth);
+
+        System.out.println("Component: " + component.getTitle() + " has child: " + component.isHasChild());
  
 		for (Object o : component.getInstances(ArchDescriptionAnalogInstances.class)) {
 			instance = (ArchDescriptionAnalogInstances) o;

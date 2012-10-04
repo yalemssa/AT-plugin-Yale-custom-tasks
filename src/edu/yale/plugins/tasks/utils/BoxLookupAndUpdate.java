@@ -298,7 +298,7 @@ public class BoxLookupAndUpdate {
 
             String message = "Processing Components ...";
             System.out.println(message);
-            monitor.setTextLine(message, 2);
+            if(monitor != null) monitor.setTextLine(message, 2);
 
             String uniqueId;
             String hashKey;
@@ -319,7 +319,7 @@ public class BoxLookupAndUpdate {
 
                     message = "Gathering Series Info: " + components.getString("title");
                     System.out.println(message);
-                    monitor.setTextLine(message, 3);
+                    if(monitor != null) monitor.setTextLine(message, 3);
                 }
 
                 recurseThroughComponents(components.getLong("resourceComponentId"),
@@ -340,7 +340,7 @@ public class BoxLookupAndUpdate {
             // indicate the number of series found
             message = "Number of Series Found: " + seriesInfo.size();
             System.out.println(message);
-            monitor.setTextLine(message, 3);
+            if(monitor != null) monitor.setTextLine(message, 3);
 
             int instanceCount = 0;
             int containerCount = 0;
@@ -358,8 +358,8 @@ public class BoxLookupAndUpdate {
 
                 // for all the instances found find the containers
                 message = "Processing Instances for Series " + series.seriesTitle;
-                monitor.setTextLine(message, 4);
                 System.out.println(message);
+                if(monitor != null)monitor.setTextLine(message, 4);
 
                 containers = new TreeMap<String, ContainerInfo>();
                 BoxLookupReturnRecords boxLookupReturnRecord = null;
@@ -411,15 +411,15 @@ public class BoxLookupAndUpdate {
                                 " Restrictions: " + containerInfo.isRestriction();
 
                         message = "Processing Container # " + containerCount + " -- " + logMessage;
-                        monitor.setTextLine(message, 5);
                         System.out.println(message);
+                        if(monitor != null) monitor.setTextLine(message, 5);
                     } else {
                         // add the instance
                         boxLookupReturnRecord.addInstanceId(instanceId);
 
                         message = "Adding Instance -- " + containerLabel;
-                        monitor.setTextLine(message, 5);
                         System.out.println(message);
+                        if(monitor != null) monitor.setTextLine(message, 5);
                     }
                 }
             }

@@ -26,7 +26,9 @@ public class ATContainer {
 	private String accessionNumber;
 	private String barcode;
 
-	public ATContainer(String containerLabel, String accessionNumber, String barcode) {
+	public ATContainer() {}
+
+    public ATContainer(String containerLabel, String accessionNumber, String barcode) {
 		this.containerLabel = containerLabel;
 		this.accessionNumber = accessionNumber;
 		this.barcode = barcode;
