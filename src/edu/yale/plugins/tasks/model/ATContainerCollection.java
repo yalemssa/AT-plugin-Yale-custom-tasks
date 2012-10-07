@@ -11,8 +11,8 @@ import java.util.HashMap;
  * Date: 10/4/12
  * Time: 5:12 AM
  *
- * Class to store information that used when exporting voyager information. It used as a way to speed up
- * exporting of voyager information
+ * Class to store information that used when exporting voyager information. It used as a
+ * way to speed up exporting of voyager information by caching this information to the backend database
  */
 public class ATContainerCollection {
     private Collection<ATContainer> containers;
@@ -26,6 +26,72 @@ public class ATContainerCollection {
      * Default constructor
      */
     public ATContainerCollection() {}
+
+    /**
+     * The main constructor
+     *
+     * @param containers
+     * @param voyagerHoldingsKey
+     * @param accessionDates
+     * @param resourceId
+     * @param resourceVersion
+     */
+    public ATContainerCollection(Collection<ATContainer> containers, String voyagerHoldingsKey,
+                                 HashMap<String, Date> accessionDates, Long resourceId, Long resourceVersion) {
+        this.containers = containers;
+        this.voyagerHoldingsKey = voyagerHoldingsKey;
+        this.accessionDates = accessionDates;
+        this.resourceId = resourceId;
+        this.resourceVersion = resourceVersion;
+    }
+
+    public Collection<ATContainer> getContainers() {
+        return containers;
+    }
+
+    public void setContainers(Collection<ATContainer> containers) {
+        this.containers = containers;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public Long getResourceVersion() {
+        return resourceVersion;
+    }
+
+    public void setResourceVersion(Long resourceVersion) {
+        this.resourceVersion = resourceVersion;
+    }
+
+    public Long getResourceId() {
+        return resourceId;
+    }
+
+    public void setResourceId(Long resourceId) {
+        this.resourceId = resourceId;
+    }
+
+    public HashMap<String, Date> getAccessionDates() {
+        return accessionDates;
+    }
+
+    public void setAccessionDates(HashMap<String, Date> accessionDates) {
+        this.accessionDates = accessionDates;
+    }
+
+    public String getVoyagerHoldingsKey() {
+        return voyagerHoldingsKey;
+    }
+
+    public void setVoyagerHoldingsKey(String voyagerHoldingsKey) {
+        this.voyagerHoldingsKey = voyagerHoldingsKey;
+    }
 
     /**
      * Method to return the accession date if one was found

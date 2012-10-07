@@ -21,6 +21,7 @@
 package edu.yale.plugins.tasks.utils;
 
 import edu.yale.plugins.tasks.model.ATContainer;
+import edu.yale.plugins.tasks.model.ATContainerCollection;
 import org.archiviststoolkit.model.*;
 import org.archiviststoolkit.swing.InfiniteProgressPanel;
 import org.archiviststoolkit.mydomain.DomainAccessObject;
@@ -32,7 +33,7 @@ import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.criterion.Expression;
 
-import java.util.Collection;
+import javax.swing.tree.FixedHeightLayoutCache;
 import java.util.HashMap;
 import java.util.Date;
 import java.text.SimpleDateFormat;
@@ -40,30 +41,66 @@ import java.text.SimpleDateFormat;
 public class ContainerGatherer {
 
 	private Resources resource;
+    private boolean useCache;
 	private String voyagerHoldingsKey = null;
-	private HashMap<String, Date> accessions;
+	private HashMap<String, Date> accessionDates;
 	private DomainAccessObject accessionDAO;
 
-	public ContainerGatherer(Resources resource) {
+	public ContainerGatherer(Resources resource, boolean useCache) {
 		this.resource = resource;
+        this.useCache = useCache;
 	}
 
-	public Collection<ATContainer> gatherContainers(InfiniteProgressPanel monitor) throws PersistenceException, LookupException {
+	public ATContainerCollection gatherContainers(InfiniteProgressPanel monitor) throws PersistenceException, LookupException {
+        // if there is a cache set, use that
+        Long resourceId = resource.getIdentifier();
+        Long resourceVersion = resource.getVersion();
+
+        // try loading the container record from database
+        ATContainerCollection containerCollection = loadATContainerRecordFromDatabase(resourceId);
+
+        // see if to just return the cache result
+        if (useCache && containerCollection != null) {
+            // now check to see if the version matches
+            if(resourceVersion.equals(containerCollection.getResourceVersion())) {
+                return containerCollection;
+            } else {
+                System.out.println("Resource version different, regenerating box lookup collection");
+            }
+        }
 
 		HashMap<String, ATContainer> containers = new HashMap<String, ATContainer>();
-		accessions = new HashMap<String, Date>();
+		accessionDates = new HashMap<String, Date>();
 		String accessionNumber;
 		accessionDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(Accessions.class);
 
 		for (ResourcesComponents component: resource.getResourcesComponents()) {
 			accessionNumber = component.getComponentUniqueIdentifier().replace("Accession ", "");
-			if (!accessions.containsKey(accessionNumber)) {
-				accessions.put(accessionNumber, lookupAccessionDate(accessionNumber));
+			if (!accessionNumber.isEmpty() && !accessionDates.containsKey(accessionNumber)) {
+                Date date = lookupAccessionDate(accessionNumber);
+				if(date != null) {
+                    accessionDates.put(accessionNumber, date);
+                }
 			}
 			gatherContainers(monitor, containers, component, accessionNumber, 2);
 		}
 
-		return containers.values();
+        // crate and return the AT Container collection
+        containerCollection = new ATContainerCollection(containers.values(),
+                voyagerHoldingsKey,
+                accessionDates,
+                resource.getIdentifier(), resource.getVersion());
+
+        // if we using cache then store this to the database
+        if(useCache) {
+            try {
+                PluginDataUtils.saveATContainerRecord(containerCollection);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+		return containerCollection;
 	}
 
 	private void gatherContainers(InfiniteProgressPanel monitor,
@@ -106,11 +143,20 @@ public class ContainerGatherer {
 	private Date lookupAccessionDate(String accessionNumber) {
 
 		String fixedAccessionNumber = accessionNumber.replace("-", ".");
-		System.out.println(fixedAccessionNumber);
+        System.out.println("Fix Access Number:" + fixedAccessionNumber);
+
+
+
 		String[] accessionParts = fixedAccessionNumber.split("\\.");
-		String accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4;
-		System.out.println(accessionParts[0] + " " + accessionParts[1] + " " + accessionParts[2]);
-		if (accessionParts.length == 4) {
+
+        // check length before we print this out to prevent index out of bounds exception
+        if(accessionParts.length >= 3) {
+            System.out.println(accessionParts[0] + " " + accessionParts[1] + " " + accessionParts[2]);
+        }
+
+        String accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4;
+
+        if (accessionParts.length == 4) {
 			System.out.println("4 parts");
 			accessionNumber1 = accessionParts[0];
 			accessionNumber2 = accessionParts[1];
@@ -145,7 +191,8 @@ public class ContainerGatherer {
 		Session session = SessionFactory.getInstance().openSession();
 		Criteria criteria = session.createCriteria(Accessions.class);
 		System.out.println(criteria.toString());
-		if (accessionNumber1.length() > 0) {
+
+        if (accessionNumber1.length() > 0) {
 			criteria.add(Expression.eq(Accessions.PROPERTYNAME_ACCESSION_NUMBER_1, accessionNumber1));
 		}
 		if (accessionNumber2.length() > 0) {
@@ -160,26 +207,14 @@ public class ContainerGatherer {
 		Accessions accession = (Accessions) criteria.uniqueResult();
 		session.close();
 
-
-//		Accessions accession = (Accessions)accessionDAO.findByUniquePropertyValue(Accessions.PROPERTYNAME_ACCESSION_NUMBER, fixedAccessionNumber);
-		return accession.getAccessionDate();
+        if(accession != null) {
+		    return accession.getAccessionDate();
+        } else {
+            return null;
+        }
 	}
 
-	public String getVoyagerHoldingsKey() {
-		return voyagerHoldingsKey;
-	}
-
-	public void setVoyagerHoldingsKey(String voyagerHoldingsKey) {
-		this.voyagerHoldingsKey = voyagerHoldingsKey;
-	}
-
-	public String lookupAccessionDateFromHashmap(String accessionNumber) {
-		Date accessionDate = accessions.get(accessionNumber);
-		if (accessionDate == null) {
-			return "no accession date";
-		} else {
-			SimpleDateFormat dateFormatter = new SimpleDateFormat("MM/dd/yyyy");
-			return dateFormatter.format(accessionDate);
-		}
-	}
+    private ATContainerCollection loadATContainerRecordFromDatabase(Long resourceId) {
+        return PluginDataUtils.getATContainerRecord(resourceId);
+    }
 }

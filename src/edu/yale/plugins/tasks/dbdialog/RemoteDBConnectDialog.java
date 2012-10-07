@@ -391,6 +391,23 @@ public class RemoteDBConnectDialog extends JDialog {
         }
     }
 
+    /**
+     * Method to return an array list of selected resource records
+     *
+     * @return
+     */
+    public ArrayList<Resources> getSelectedResourceRecords() {
+        ArrayList<Resources> records = new ArrayList<Resources>();
+        Object[] objects = list1.getSelectedValues();
+
+        for(Object object: objects) {
+            Resources resource = (Resources) object;
+            records.add(resource);
+        }
+
+        return records;
+    }
+
     public Resources getResourceRecord(Long identifier) throws Exception {
         java.util.List completeList;
         Transaction tx = null;

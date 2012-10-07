@@ -6,17 +6,30 @@ package edu.yale.plugins.tasks;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.dbdialog.RemoteDBConnectDialog;
+import edu.yale.plugins.tasks.model.ATContainer;
+import edu.yale.plugins.tasks.model.ATContainerCollection;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
+import edu.yale.plugins.tasks.utils.ContainerGatherer;
+import org.archiviststoolkit.ApplicationFrame;
+import org.archiviststoolkit.dialog.ErrorDialog;
+import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
 import org.archiviststoolkit.model.ContainerGroup;
 import org.archiviststoolkit.model.Resources;
+import org.archiviststoolkit.mydomain.LookupException;
+import org.archiviststoolkit.mydomain.PersistenceException;
+import org.archiviststoolkit.mydomain.ResourcesDAO;
 import org.archiviststoolkit.swing.ATProgressUtil;
 import org.archiviststoolkit.swing.InfiniteProgressPanel;
 import org.archiviststoolkit.util.MyTimer;
@@ -127,6 +140,97 @@ public class YalePluginTasksFrame extends JFrame {
         }
     }
 
+    /**
+     * Method to export voyager information
+     */
+    private void voyagerExportButtonActionPerformed() {
+        if(dbdialog != null) {
+            JFileChooser fileChooser = new JFileChooser();
+
+            if(fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                final File outputFile = fileChooser.getSelectedFile();
+                final ResourcesDAO access = new ResourcesDAO();
+
+                Thread performer = new Thread(new Runnable() {
+                    public void run() {
+                        InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(YalePluginTasksFrame.this, 1000);
+                        monitor.start("Exporting Voyager Information...");
+
+                        long resourceId;
+
+                        Resources resource;
+
+                        PrintWriter writer = null;
+
+                        ContainerGatherer gatherer;
+
+                        String accessionNumber;
+
+                        // start the timer object
+                        MyTimer timer = new MyTimer();
+                        timer.reset();
+
+                        try {
+                            writer = new PrintWriter(outputFile);
+
+                            ArrayList<Resources> selectedResources = dbdialog.getSelectedResourceRecords();
+
+                            int totalRecords = selectedResources.size();
+                            int count = 0;
+
+                            for (Resources selectedResource: selectedResources)  {
+                                count++;
+                                resourceId = selectedResource.getResourceId();
+
+                                resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
+
+                                monitor.setTextLine("Exporting resource " + count + " of " + totalRecords + " - " + resource.getTitle(), 1);
+
+                                gatherer = new ContainerGatherer(resource, true);
+
+                                ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
+
+                                for (ATContainer container: containerCollection.getContainers()) {
+                                    accessionNumber = container.getAccessionNumber();
+
+                                    writer.println(resource.getResourceIdentifier2() + "," +
+                                            containerCollection.getVoyagerHoldingsKey() + "," +
+                                            accessionNumber + "," +
+                                            containerCollection.lookupAccessionDate(accessionNumber) + "," +
+                                            container.getContainerLabel() + "," +
+                                            "," + //just a dummy for box number extension
+                                            container.getBarcode() + ",");
+                                }
+
+                                // close the long session, otherwise memory would quickly run out
+                                access.closeLongSession();
+                                access.getLongSession();
+                            }
+
+                            writer.flush();
+
+                            System.out.println("Total Time to export: " + MyTimer.toString(timer.elapsedTimeMillis()));
+                        } catch (LookupException e) {
+                            monitor.close();
+                            new ErrorDialog("Error loading resource", e).showDialog();
+                        } catch (FileNotFoundException e) {
+                            monitor.close();
+                            new ErrorDialog("Error creating file writer", e).showDialog();
+                        } catch (PersistenceException e) {
+                            new ErrorDialog("Error looking up accession date", e).showDialog();
+                        } catch (SQLException e) {
+                            new ErrorDialog("Error resetting the long session", e).showDialog();
+                        } finally {
+                            writer.close();
+                            monitor.close();
+                        }
+                    }
+                }, "Exporting Voyager Information");
+                performer.start();
+            }
+        }
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner non-commercial license
@@ -186,6 +290,11 @@ public class YalePluginTasksFrame extends JFrame {
 
                 //---- voyagerExportButton ----
                 voyagerExportButton.setText("Export Voyager Info");
+                voyagerExportButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        voyagerExportButtonActionPerformed();
+                    }
+                });
                 contentPanel.add(voyagerExportButton, cc.xy(1, 5));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);

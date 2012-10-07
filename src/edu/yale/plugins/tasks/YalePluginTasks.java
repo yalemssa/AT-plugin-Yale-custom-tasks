@@ -2,6 +2,7 @@
 package edu.yale.plugins.tasks;
 
 import edu.yale.plugins.tasks.model.ATContainer;
+import edu.yale.plugins.tasks.model.ATContainerCollection;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
@@ -58,9 +59,6 @@ import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
  */
 
 public class YalePluginTasks extends Plugin implements ATPlugin {
-
-	//testing git commits
-
 	public static final String APPLY_CONTAINER_INFORMATION_TASK = "Assign Container Information";
 	public static final String EXPORT_VOYAGER_INFORMATION = "Export Voyager Information";
 	public static final String PARTIAL_EAD_IMPORT = "Partial EAD Import";
@@ -81,6 +79,11 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     BoxLookupAndUpdate boxLookupAndUpdate = null;
 
     public static final String BOX_RECORD_DATA_NAME = "box_record";
+    public static final String AT_CONTAINER_DATA_NAME = "container_record";
+    public static final String CONFIG_DATA_NAME = "config_record";
+
+    // boolean used to specify that caching should be used
+    private boolean useCache = true;
 
     // the default constructor
 	public YalePluginTasks() { }
@@ -197,8 +200,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             return;
                         }
 
-                        //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(resource, monitor, true);
-                        final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, true);
+                        final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, useCache);
 
                         // close the monitor
                         monitor.close();
@@ -226,37 +228,52 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 				JOptionPane.showMessageDialog(mainFrame, "You must select at least one resource record");
 			} else {
 				ATFileChooser filechooser = new ATFileChooser();
-				if(filechooser.showSaveDialog(ApplicationFrame.getInstance()) == JFileChooser.APPROVE_OPTION) {
+
+                if(filechooser.showSaveDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
 					final File outputFile = filechooser.getSelectedFile();
-					Thread performer = new Thread(new Runnable() {
+
+                    Thread performer = new Thread(new Runnable() {
 						public void run() {
 							InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(ApplicationFrame.getInstance(), 1000);
 							monitor.start("Exporting Voyager Information...");
-							long resourceId;
+
+                            long resourceId;
 							Resources selectedResource, resource;
-							ArchDescriptionAnalogInstances instance;
+
 							PrintWriter writer = null;
-							ContainerGatherer gatherer;
-							String accessionNumber;
-							try {
+
+                            ContainerGatherer gatherer;
+
+                            String accessionNumber;
+
+                            try {
 								writer = new PrintWriter(outputFile);
 								int totalRecords = worksurfaceTable.getSelectedObjects().size();
+
 								for (int i: worksurfaceTable.getSelectedRows())  {
 									selectedResource = (Resources) worksurfaceTable.getFilteredList().get(i);
 									resourceId = selectedResource.getResourceId();
 									resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
-									monitor.setTextLine("Exporting resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
-									gatherer = new ContainerGatherer(resource);
-									for (ATContainer container: gatherer.gatherContainers(monitor)) {
+
+                                    monitor.setTextLine("Exporting resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
+
+                                    gatherer = new ContainerGatherer(resource, useCache);
+                                    ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
+
+                                    for (ATContainer container: containerCollection.getContainers()) {
 										accessionNumber = container.getAccessionNumber();
 										writer.println(resource.getResourceIdentifier2() + "," +
-												gatherer.getVoyagerHoldingsKey() + "," +
+												containerCollection.getVoyagerHoldingsKey() + "," +
 												accessionNumber + "," +
-												gatherer.lookupAccessionDateFromHashmap(accessionNumber) + "," +
+												containerCollection.lookupAccessionDate(accessionNumber) + "," +
 												container.getContainerLabel() + "," +
 												"," + //just a dummy for box number extension
 												container.getBarcode() + ",");
 									}
+
+                                    // close the long session, otherwise memory would quickly run out
+                                    access.closeLongSession();
+                                    access.getLongSession();
 								}
 								writer.flush();
 							} catch (LookupException e) {
@@ -267,7 +284,9 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 								new ErrorDialog("Error creating file writer", e).showDialog();
 							} catch (PersistenceException e) {
 								new ErrorDialog("Error looking up accession date", e).showDialog();
-							} finally {
+							} catch (SQLException e) {
+                                new ErrorDialog("Error resetting the long session", e).showDialog();
+                            } finally {
 								writer.close();
 								monitor.close();
 							}
@@ -278,7 +297,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 			}
 		} else if (task.equals(BOX_LOOKUP)) {
 			try {
-				BoxLookupReturnScreen returnScreen = new BoxLookupReturnScreen(ApplicationFrame.getInstance());
+				BoxLookupReturnScreen returnScreen = new BoxLookupReturnScreen(mainFrame);
 				returnScreen.showDialog();
 			} catch (ClassNotFoundException e) {
 				new ErrorDialog("", e).showDialog();

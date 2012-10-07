@@ -44,9 +44,6 @@ public class BoxLookupAndUpdate {
 
     private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
 
-    // used to cached return screen records
-    private HashMap<Long, BoxLookupReturnRecordsCollection> boxCollections = new HashMap<Long, BoxLookupReturnRecordsCollection>();
-
     private String logMessage = "";
 
     private DomainAccessObject locationDAO;
@@ -269,14 +266,13 @@ public class BoxLookupAndUpdate {
         Long resourceVersion = record.getVersion();
 
         // try loading the box lookup return record
-        loadBoxLookupReturnRecordFromDatabase(resourceId);
+        BoxLookupReturnRecordsCollection boxC = loadBoxLookupReturnRecordFromDatabase(resourceId);
 
         // see if to just return the cache result
-        if (useCache && boxCollections.containsKey(resourceId)) {
+        if (useCache && boxC != null) {
             // now check to see if the version matches
-            BoxLookupReturnRecordsCollection boxC = this.boxCollections.get(resourceId);
             if(resourceVersion.equals(boxC.getResourceVersion())) {
-                return boxCollections.get(record.getIdentifier());
+                return boxC;
             } else {
                 System.out.println("Resource version different, regenerating box lookup collection");
             }
@@ -428,11 +424,8 @@ public class BoxLookupAndUpdate {
             BoxLookupReturnRecordsCollection boxCollection = new BoxLookupReturnRecordsCollection(boxRecords,
                     resourceId, resourceVersion, instanceCount);
 
-            // store a copy of this for future access
+            // store a copy of this for future access on the database
             if (useCache) {
-                boxCollections.put(record.getIdentifier(), boxCollection);
-
-                // save it to the database now
                 PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
             }
 
@@ -452,15 +445,8 @@ public class BoxLookupAndUpdate {
      *
      * @param resourceId
      */
-    private void loadBoxLookupReturnRecordFromDatabase(Long resourceId) {
-        // check to see if this is not already loaded in cache
-        if(!boxCollections.containsKey(resourceId)) {
-            BoxLookupReturnRecordsCollection boxCollection = PluginDataUtils.getBoxLookupReturnRecord(resourceId);
-
-            if(boxCollection != null) {
-                boxCollections.put(resourceId, boxCollection);
-            }
-        }
+    private BoxLookupReturnRecordsCollection loadBoxLookupReturnRecordFromDatabase(Long resourceId) {
+        return PluginDataUtils.getBoxLookupReturnRecord(resourceId);
     }
 
     /**
@@ -479,11 +465,14 @@ public class BoxLookupAndUpdate {
         Long resourceId = record.getIdentifier();
         Long resourceVersion = record.getVersion();
 
-        if (useCache && this.boxCollections.containsKey(resourceId)) {
+        // try loading the box lookup return record
+        BoxLookupReturnRecordsCollection boxC = loadBoxLookupReturnRecordFromDatabase(resourceId);
+
+        // see if to just return the cache result
+        if (useCache && boxC != null) {
             // now check to see if the version matches
-            BoxLookupReturnRecordsCollection boxC = this.boxCollections.get(resourceId);
             if(resourceVersion.equals(boxC.getResourceVersion())) {
-                return this.boxCollections.get(record.getIdentifier());
+                return boxC;
             } else {
                 System.out.println("Resource version different, regenerating box lookup collection");
             }
@@ -511,7 +500,11 @@ public class BoxLookupAndUpdate {
 
         //store a copy of this for future access
         if (useCache) {
-            this.boxCollections.put(record.getIdentifier(), boxCollection);
+            try {
+                PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
+            } catch (Exception e) {
+                new ErrorDialog("", e).showDialog();
+            }
         }
 
         // print out the time it took for the search process

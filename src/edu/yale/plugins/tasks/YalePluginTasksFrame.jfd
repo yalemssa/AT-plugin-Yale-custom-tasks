@@ -1,4 +1,4 @@
-JFDML JFormDesigner: "5.1.0.1.63" Java: "1.6.0_31" encoding: "UTF-8"
+JFDML JFormDesigner: "5.1.0.2.64" Java: "1.6.0_31" encoding: "UTF-8"
 
 new FormModel {
 	contentType: "form/swing"
@@ -39,6 +39,7 @@ new FormModel {
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "voyagerExportButton"
 						"text": "Export Voyager Info"
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "voyagerExportButtonActionPerformed", false ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 1
 						"gridY": 5
