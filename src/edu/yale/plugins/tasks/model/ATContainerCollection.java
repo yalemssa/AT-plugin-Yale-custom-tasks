@@ -1,6 +1,7 @@
 package edu.yale.plugins.tasks.model;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,7 +16,7 @@ import java.util.HashMap;
  * way to speed up exporting of voyager information by caching this information to the backend database
  */
 public class ATContainerCollection {
-    private Collection<ATContainer> containers;
+    private ArrayList<ATContainer> containers;
     private String voyagerHoldingsKey = null;
     private HashMap<String, Date> accessionDates;
     private Long resourceId = -1L;
@@ -36,7 +37,7 @@ public class ATContainerCollection {
      * @param resourceId
      * @param resourceVersion
      */
-    public ATContainerCollection(Collection<ATContainer> containers, String voyagerHoldingsKey,
+    public ATContainerCollection(ArrayList<ATContainer> containers, String voyagerHoldingsKey,
                                  HashMap<String, Date> accessionDates, Long resourceId, Long resourceVersion) {
         this.containers = containers;
         this.voyagerHoldingsKey = voyagerHoldingsKey;
@@ -45,11 +46,11 @@ public class ATContainerCollection {
         this.resourceVersion = resourceVersion;
     }
 
-    public Collection<ATContainer> getContainers() {
+    public ArrayList<ATContainer> getContainers() {
         return containers;
     }
 
-    public void setContainers(Collection<ATContainer> containers) {
+    public void setContainers(ArrayList<ATContainer> containers) {
         this.containers = containers;
     }
 

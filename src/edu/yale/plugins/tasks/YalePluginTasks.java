@@ -246,6 +246,10 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                             String accessionNumber;
 
+                            // start the timer object
+                            MyTimer timer = new MyTimer();
+                            timer.reset();
+
                             try {
 								writer = new PrintWriter(outputFile);
 								int totalRecords = worksurfaceTable.getSelectedObjects().size();
@@ -275,7 +279,10 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                                     access.closeLongSession();
                                     access.getLongSession();
 								}
-								writer.flush();
+
+                                writer.flush();
+
+                                System.out.println("Total Time to export: " + MyTimer.toString(timer.elapsedTimeMillis()));
 							} catch (LookupException e) {
 								monitor.close();
 								new ErrorDialog("Error loading resource", e).showDialog();

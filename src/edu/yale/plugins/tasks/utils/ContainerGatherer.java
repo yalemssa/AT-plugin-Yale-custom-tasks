@@ -34,6 +34,7 @@ import org.hibernate.Session;
 import org.hibernate.criterion.Expression;
 
 import javax.swing.tree.FixedHeightLayoutCache;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Date;
 import java.text.SimpleDateFormat;
@@ -85,8 +86,11 @@ public class ContainerGatherer {
 			gatherContainers(monitor, containers, component, accessionNumber, 2);
 		}
 
+        // Array list that hold container
+        ArrayList<ATContainer> containerList = new ArrayList<ATContainer>(containers.values());
+
         // crate and return the AT Container collection
-        containerCollection = new ATContainerCollection(containers.values(),
+        containerCollection = new ATContainerCollection(containerList,
                 voyagerHoldingsKey,
                 accessionDates,
                 resource.getIdentifier(), resource.getVersion());
@@ -124,9 +128,11 @@ public class ContainerGatherer {
 			System.out.println("Key: " + key);
 			if (!containers.containsKey(key)) {
 				containers.put(key, new ATContainer(instanceLabel, accessionNumber, instance.getBarcode()));
-				if (voyagerHoldingsKey == null) {
+				if (voyagerHoldingsKey == null && instance.getUserDefinedString1() != null) {
 					String[] parts = instance.getUserDefinedString1().split("_");
-					voyagerHoldingsKey = parts[1];
+                    if(parts.length == 2) {
+					    voyagerHoldingsKey = parts[1];
+                    }
 				}
 			}
 
