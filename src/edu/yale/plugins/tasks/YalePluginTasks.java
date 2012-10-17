@@ -3,36 +3,36 @@ package edu.yale.plugins.tasks;
 
 import edu.yale.plugins.tasks.model.ATContainer;
 import edu.yale.plugins.tasks.model.ATContainerCollection;
-import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
+import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import edu.yale.plugins.tasks.utils.ContainerGatherer;
+import org.archiviststoolkit.ApplicationFrame;
+import org.archiviststoolkit.dialog.ATFileChooser;
+import org.archiviststoolkit.dialog.ErrorDialog;
+import org.archiviststoolkit.editor.ArchDescriptionFields;
 import org.archiviststoolkit.exceptions.UnsupportedDatabaseType;
+import org.archiviststoolkit.hibernate.SessionFactory;
+import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
+import org.archiviststoolkit.model.Resources;
+import org.archiviststoolkit.model.ResourcesCommon;
+import org.archiviststoolkit.mydomain.*;
+import org.archiviststoolkit.plugin.ATPlugin;
 import org.archiviststoolkit.structure.ATFieldInfo;
 import org.archiviststoolkit.structure.DefaultValues;
+import org.archiviststoolkit.swing.ATProgressUtil;
+import org.archiviststoolkit.swing.InfiniteProgressPanel;
 import org.archiviststoolkit.util.*;
 import org.java.plugin.Plugin;
-import org.archiviststoolkit.plugin.ATPlugin;
-import org.archiviststoolkit.ApplicationFrame;
-import org.archiviststoolkit.hibernate.SessionFactory;
-import org.archiviststoolkit.dialog.ErrorDialog;
-import org.archiviststoolkit.dialog.ATFileChooser;
-import org.archiviststoolkit.model.*;
-import org.archiviststoolkit.editor.ArchDescriptionFields;
-import org.archiviststoolkit.swing.InfiniteProgressPanel;
-import org.archiviststoolkit.swing.ATProgressUtil;
-import org.archiviststoolkit.mydomain.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Collection;
-import java.util.HashMap;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.sql.SQLException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.io.*;
-
-import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Archivists' Toolkit(TM) Copyright � 2005-2007 Regents of the University of California, New York University, & Five Colleges, Inc.
@@ -63,6 +63,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 	public static final String EXPORT_VOYAGER_INFORMATION = "Export Voyager Information";
 	public static final String PARTIAL_EAD_IMPORT = "Partial EAD Import";
 	public static final String BOX_LOOKUP = "Box Lookup";
+    public static final String INDEX_RECORDS = "Index Records";
+
 	public static final String PLUGIN_NAME = "Yale Tasks";
 
 	protected ApplicationFrame mainFrame;
@@ -311,7 +313,13 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 			} catch (SQLException e) {
 				new ErrorDialog("", e).showDialog();
 			}
-		}
+		} else if (task.equals(INDEX_RECORDS)) {
+            if (mainFrame.getCurrentUserAccessClass() == 5) {
+                indexRecords(mainFrame, true);
+            }  else {
+                JOptionPane.showMessageDialog(mainFrame, "This function only works for level 5 users");
+            }
+        }
 	}
 
     public boolean doTask(String s, String[] strings) {
@@ -321,7 +329,10 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
     // Method to get the list of specific task the plugin can perform
 	public String[] getTaskList() {
-		String[] tasks = {APPLY_CONTAINER_INFORMATION_TASK, EXPORT_VOYAGER_INFORMATION, BOX_LOOKUP};
+        String[] tasks = new String[]{APPLY_CONTAINER_INFORMATION_TASK,
+                    EXPORT_VOYAGER_INFORMATION,
+                    BOX_LOOKUP, INDEX_RECORDS};
+
 		return tasks;
 	}
 
@@ -329,6 +340,96 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 	public String getEditorType() {
 		return null;
 	}
+
+    /**
+     * Method to index records i.e cache box and container information in the database
+     */
+    public void indexRecords(final JFrame parent, final boolean gui) {
+        final ResourcesDAO access = new ResourcesDAO();
+
+        Thread performer = new Thread(new Runnable() {
+            public void run() {
+                InfiniteProgressPanel monitor = null;
+
+                if(gui) {
+                    monitor = ATProgressUtil.createModalProgressMonitor(parent, 1000, true);
+                    monitor.start("Generating index...");
+                }
+
+                long resourceId;
+                Resources selectedResource, resource;
+
+                BoxLookupAndUpdate boxLookupAndUpdate;
+                ContainerGatherer gatherer;
+
+                // start the timer object
+                MyTimer timer = new MyTimer();
+                timer.reset();
+
+                try {
+                    ArrayList records = (ArrayList) access.findAll();
+
+                    int totalRecords = records.size();
+                    int i = 1;
+                    for (Object object: records) {
+                        if(monitor != null && monitor.isProcessCancelled()) {
+                            System.out.println("Indexing cancelled ...");
+                            break;
+                        }
+
+                        selectedResource = (Resources) object;
+                        resourceId = selectedResource.getResourceId();
+                        resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
+
+                        monitor.setTextLine("Indexing resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
+
+                        // index the containers
+                        gatherer = new ContainerGatherer(resource, true);
+                        ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
+
+                        // index the boxes
+                        boxLookupAndUpdate = new BoxLookupAndUpdate();
+                        BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, true);
+
+                        // close the long session, otherwise memory would quickly run out
+                        access.closeLongSession();
+                        access.getLongSession();
+
+                        i++;
+                    }
+
+                    System.out.println("Total Time to export: " + MyTimer.toString(timer.elapsedTimeMillis()));
+                } catch (LookupException e) {
+                    if(gui) {
+                        monitor.close();
+                        new ErrorDialog("Error loading resource", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } catch (PersistenceException e) {
+                    if(gui) {
+                        new ErrorDialog("Error looking up accession date", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } catch (SQLException e) {
+                    if(gui) {
+                        new ErrorDialog("Error resetting the long session", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    if(gui) {
+                        monitor.close();
+                        new ErrorDialog("Exception", e).showDialog();
+                    }
+                    e.printStackTrace();
+                } finally {
+                    if (gui) {
+                        monitor.close();
+                    }
+                }
+            }
+        }, "Indexing Records ...");
+        performer.start();
+    }
 
 	// code that is executed when plugin starts. not used here
 	protected void doStart()  {	}

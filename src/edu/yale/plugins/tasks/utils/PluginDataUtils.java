@@ -4,6 +4,7 @@ import com.thoughtworks.xstream.XStream;
 import edu.yale.plugins.tasks.YalePluginTasks;
 import edu.yale.plugins.tasks.model.ATContainerCollection;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
+import edu.yale.plugins.tasks.model.ConfigData;
 import org.archiviststoolkit.model.ATPluginData;
 import org.archiviststoolkit.mydomain.DomainAccessObject;
 import org.archiviststoolkit.mydomain.DomainAccessObjectFactory;
@@ -18,6 +19,28 @@ import java.util.Collection;
  * Class to load and save Box look return records to and from the AT database
  */
 public class PluginDataUtils {
+    /**
+     * Method to return the config data used by the plugin
+     *
+     * @return
+     */
+    public static ConfigData getConfigData() {
+        try {
+            String dataName = YalePluginTasks.CONFIG_DATA_NAME;
+            ATPluginData pluginData = getPluginData(dataName);
+
+            if(pluginData != null) {
+                ConfigData configData = (ConfigData)getObjectFromPluginData(pluginData);
+                return configData;
+            } else {
+                return null;
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     /**
      * Method to load the box lookup record
      */
@@ -58,6 +81,44 @@ public class PluginDataUtils {
         } catch(Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    /**
+     * Method to save config data to the database
+     *
+     * @param configData
+     * @throws Exception
+     */
+    public static void saveConfigData(ConfigData configData) throws Exception {
+        String dataName = YalePluginTasks.CONFIG_DATA_NAME;
+
+        ATPluginData pluginData = getPluginData(dataName);
+
+        // use Xstream to convert the java object to an xml string
+        XStream xstream = new XStream();
+        String dataString = xstream.toXML(configData);
+
+        // see If there is an configuration data already saved. If any is found then
+        // update it.
+        if(pluginData == null) {
+            pluginData = new ATPluginData(YalePluginTasks.PLUGIN_NAME, true,
+                    1, dataName, YalePluginTasks.CONFIG_DATA_NAME, dataString);
+        } else {
+            pluginData.setDataString(dataString);
+        }
+
+        // save using temp session
+        try {
+            Class clazz = pluginData.getClass();
+
+            DomainAccessObject access =
+                    DomainAccessObjectFactory.getInstance().getDomainAccessObject(clazz);
+            //access.getLongSession();
+            access.update(pluginData);
+        } catch(Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
 

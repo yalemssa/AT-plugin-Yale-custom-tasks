@@ -231,6 +231,14 @@ public class YalePluginTasksFrame extends JFrame {
         }
     }
 
+    /**
+     * Method to index
+     */
+    private void indexButtonActionPerformed() {
+        YalePluginTasks yaleTasks = new YalePluginTasks();
+        yaleTasks.indexRecords(this, true);
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner non-commercial license
@@ -240,6 +248,7 @@ public class YalePluginTasksFrame extends JFrame {
         label1 = new JLabel();
         boxSearchButton = new JButton();
         voyagerExportButton = new JButton();
+        indexButton = new JButton();
         buttonBar = new JPanel();
         showDBDialogButton = new JButton();
         okButton = new JButton();
@@ -264,6 +273,8 @@ public class YalePluginTasksFrame extends JFrame {
                         FormFactory.DEFAULT_COLSPEC
                     },
                     new RowSpec[] {
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
@@ -296,6 +307,15 @@ public class YalePluginTasksFrame extends JFrame {
                     }
                 });
                 contentPanel.add(voyagerExportButton, cc.xy(1, 5));
+
+                //---- indexButton ----
+                indexButton.setText("Index Records");
+                indexButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        indexButtonActionPerformed();
+                    }
+                });
+                contentPanel.add(indexButton, cc.xy(1, 7));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -345,6 +365,7 @@ public class YalePluginTasksFrame extends JFrame {
     private JLabel label1;
     private JButton boxSearchButton;
     private JButton voyagerExportButton;
+    private JButton indexButton;
     private JPanel buttonBar;
     private JButton showDBDialogButton;
     private JButton okButton;
