@@ -102,7 +102,7 @@ public class YalePluginTasksFrame extends JFrame {
                             }
 
                             //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(record, monitor, true);
-                            final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(record, monitor, true);
+                            final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(record, monitor, useCacheCheckBox.isSelected());
 
                             monitor.close();
 
@@ -186,7 +186,7 @@ public class YalePluginTasksFrame extends JFrame {
 
                                 monitor.setTextLine("Exporting resource " + count + " of " + totalRecords + " - " + resource.getTitle(), 1);
 
-                                gatherer = new ContainerGatherer(resource, true);
+                                gatherer = new ContainerGatherer(resource, useCacheCheckBox.isSelected());
 
                                 ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
 
@@ -245,7 +245,7 @@ public class YalePluginTasksFrame extends JFrame {
         dialogPane = new JPanel();
         contentPanel = new JPanel();
         assignContainerButton = new JButton();
-        label1 = new JLabel();
+        useCacheCheckBox = new JCheckBox();
         boxSearchButton = new JButton();
         voyagerExportButton = new JButton();
         indexButton = new JButton();
@@ -291,9 +291,10 @@ public class YalePluginTasksFrame extends JFrame {
                 });
                 contentPanel.add(assignContainerButton, cc.xy(1, 1));
 
-                //---- label1 ----
-                label1.setText(" Open the container information dialog ");
-                contentPanel.add(label1, cc.xy(3, 1));
+                //---- useCacheCheckBox ----
+                useCacheCheckBox.setText("Use Database Cache");
+                useCacheCheckBox.setSelected(true);
+                contentPanel.add(useCacheCheckBox, cc.xy(3, 1));
 
                 //---- boxSearchButton ----
                 boxSearchButton.setText("Box Search");
@@ -362,7 +363,7 @@ public class YalePluginTasksFrame extends JFrame {
     private JPanel dialogPane;
     private JPanel contentPanel;
     private JButton assignContainerButton;
-    private JLabel label1;
+    private JCheckBox useCacheCheckBox;
     private JButton boxSearchButton;
     private JButton voyagerExportButton;
     private JButton indexButton;

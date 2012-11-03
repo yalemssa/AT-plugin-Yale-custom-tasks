@@ -22,9 +22,10 @@ new FormModel {
 						"gridX": 1
 						"gridY": 1
 					} )
-					add( new FormComponent( "javax.swing.JLabel" ) {
-						name: "label1"
-						"text": " Open the container information dialog "
+					add( new FormComponent( "javax.swing.JCheckBox" ) {
+						name: "useCacheCheckBox"
+						"text": "Use Database Cache"
+						"selected": true
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3
 						"gridY": 1

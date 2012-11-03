@@ -216,6 +216,7 @@ public class YaleLocationAssignmentResources extends JDialog {
                                 exportedToVoyager
                         );
 
+                        //TODO need to update all values in the boxRecord 11/3/2012
                         //update the box record values now
                         if (barcode.length() != 0) {
                             boxRecord.setBarcode(barcode);
@@ -730,6 +731,7 @@ public class YaleLocationAssignmentResources extends JDialog {
     }
 
     private void doneButtonActionPerformed(ActionEvent e) {
+        //TODO 11/3/2012 need to save the boxRecord to the database here if any changes were made
         this.setVisible(false);
     }
 

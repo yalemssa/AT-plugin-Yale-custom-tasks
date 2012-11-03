@@ -181,7 +181,7 @@ public class BoxLookupAndUpdate {
                                 hashKey,
                                 components.getBoolean("hasChild"),
                                 componentLookupByComponent,
-                                instanceLookupByComponent);
+                                components.getString("title"));
                     }
                 }
 
@@ -322,7 +322,7 @@ public class BoxLookupAndUpdate {
                         hashKey,
                         components.getBoolean("hasChild"),
                         componentLookupByComponent,
-                        instanceLookupByComponent);
+                        components.getString("title"));
             }
 
             ResultSet instances;
@@ -387,9 +387,16 @@ public class BoxLookupAndUpdate {
 
                         containers.put(containerLabel, containerInfo);
 
+                        // if the series and component title are the same then we don't have a series level
+                        // component record
+                        String seriesTitle = series.getUniqueId();
+                        if(seriesTitle.equals(containerInfo.getComponentTitle())) {
+                            seriesTitle = "";
+                        }
+
                         // create and store the BoxLookupReturn Record
                         boxLookupReturnRecord = new BoxLookupReturnRecords(record.getResourceIdentifier(),
-                                series.getUniqueId(),
+                                seriesTitle,
                                 containerInfo.getComponentTitle(),
                                 containerInfo.getLocation(),
                                 containerInfo.getBarcode(),
@@ -618,6 +625,8 @@ public class BoxLookupAndUpdate {
             return componenetUniqueId.replace("Accession ", "");
         } else if (resourceType.equalsIgnoreCase("ms")) {
             return seriesTitle.replace("Accession ", "");
+        } else if (seriesTitle != null && !seriesTitle.isEmpty()) {
+            return seriesTitle;
         } else {
             return "";
         }
@@ -636,7 +645,7 @@ public class BoxLookupAndUpdate {
                                           String hashKey,
                                           Boolean hasChild,
                                           PreparedStatement componentLookup,
-                                          PreparedStatement instanceLookup) throws SQLException {
+                                          String title) throws SQLException {
 //		System.out.println("Component ID: " + componentID + " Level: " + level + " Title: " + title + " Has child: " + hasChild);
         if (hasChild) {
             componentLookup.setLong(1, componentID);
@@ -652,7 +661,7 @@ public class BoxLookupAndUpdate {
 
             if (componentList.size() > 0) {
                 for (ComponentInfo component : componentList) {
-                    recurseThroughComponents(component.getComponentId(), hashKey, component.isHasChild(), componentLookup, instanceLookup);
+                    recurseThroughComponents(component.getComponentId(), hashKey, component.isHasChild(), componentLookup, component.getTitle());
                 }
             } else {
                 //this is a hack because the has child flag for components may be set wrong
@@ -660,10 +669,11 @@ public class BoxLookupAndUpdate {
                 series.addComponentId(componentID);
             }
         } else {
-
             SeriesInfo series = seriesInfo.get(hashKey);
             series.addComponentId(componentID);
 
+            // add the component title in case we don't have a structure that's series/subseries
+            componentTitleLookup.put(componentID, title);
         }
     }
 
