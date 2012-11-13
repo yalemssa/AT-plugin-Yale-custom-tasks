@@ -34,6 +34,7 @@ import edu.yale.plugins.tasks.table.BoxLookupTableFormat;
 import edu.yale.plugins.tasks.table.BoxReturnRecordsFilterator;
 import edu.yale.plugins.tasks.table.YaleAlternatingRowColorTable;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
+import edu.yale.plugins.tasks.utils.PluginDataUtils;
 import edu.yale.plugins.tasks.voyager.VoyagerInputValuesDialog;
 import org.archiviststoolkit.dialog.ErrorDialog;
 import org.archiviststoolkit.editor.LocationEditor;
@@ -61,13 +62,19 @@ public class YaleLocationAssignmentResources extends JDialog {
     private Collection<BoxLookupReturnRecords> containerListValues;
 
     // object to perform jdbc lookup and updates
-    BoxLookupAndUpdate boxLookupAndUpdate = null;
+    private BoxLookupAndUpdate boxLookupAndUpdate = null;
 
     // The parent frame
     private Frame parentFrame = null;
 
     // keep track of the total instances
     private int totalInstances = 0;
+
+    // box collection that saved to the database
+    private BoxLookupReturnRecordsCollection boxCollection;
+
+    // used to specify if record needs to be saved
+    private boolean recordDirty = false;
 
     public YaleLocationAssignmentResources(Frame owner) {
         super(owner);
@@ -164,6 +171,8 @@ public class YaleLocationAssignmentResources extends JDialog {
                         boxRecord.setLocation("");
                     }
 
+                    recordDirty = true;
+
                     System.out.println("Total # of Instances Updated: " + instances);
                 } catch (Exception e1) {
                     showInstanceUpdateErrorDialog(boxRecord.toString());
@@ -222,8 +231,18 @@ public class YaleLocationAssignmentResources extends JDialog {
                             boxRecord.setBarcode(barcode);
                         }
 
+                        if(userDefinedString2.length() != 0) {
+                            boxRecord.setContainerType(userDefinedString2);
+                        }
+
+                        if(changeRestriction) {
+                            boxRecord.setRestriction(restriction);
+                        }
+
                         boxRecord.setTopLevelContainerName(topLevelContainerName);
                     }
+
+                    recordDirty = true;
                 } catch (Exception e1) {
                     showInstanceUpdateErrorDialog(boxRecord.toString());
 
@@ -284,6 +303,8 @@ public class YaleLocationAssignmentResources extends JDialog {
                     break;
                 }
             }
+
+            recordDirty = true;
 
             containerLookupTable.invalidate();
             containerLookupTable.repaint();
@@ -718,6 +739,8 @@ public class YaleLocationAssignmentResources extends JDialog {
                     boxRecord.setLocation(selectedLocation.toString());
                 }
 
+                recordDirty = true;
+
                 System.out.println("Total # of Instances Updated: " + instances);
             } catch (Exception e1) {
                 showInstanceUpdateErrorDialog(boxRecord.toString());
@@ -731,7 +754,16 @@ public class YaleLocationAssignmentResources extends JDialog {
     }
 
     private void doneButtonActionPerformed(ActionEvent e) {
-        //TODO 11/3/2012 need to save the boxRecord to the database here if any changes were made
+        // if any changes were made save the updated box collection record
+        if(recordDirty) {
+            try {
+                PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
+            } catch(Exception ex) {
+                new ErrorDialog("", ex).showDialog();
+            }
+        }
+
+        // hide this window
         this.setVisible(false);
     }
 
@@ -795,6 +827,7 @@ public class YaleLocationAssignmentResources extends JDialog {
      * @param boxCollection The collection of containers along with some other information
      */
     public void assignContainerListValues(BoxLookupReturnRecordsCollection boxCollection) {
+        this.boxCollection = boxCollection;
         totalInstances = boxCollection.getTotalInstances();
         containerListValues = boxCollection.getContainers();
         resultsEventList.clear();

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?> 
-<java version="1.6.0_17" class="java.beans.XMLDecoder"> 
+<java version="1.6.0_31" class="java.beans.XMLDecoder"> 
  <object class="com.jformdesigner.model.FormModel"> 
   <void property="contentType"> 
    <string>form/swing</string> 
@@ -155,6 +155,10 @@
              <string>font</string> 
              <object idref="Font0"/> 
             </void> 
+            <void method="setProperty"> 
+             <string>visible</string> 
+             <boolean>false</boolean> 
+            </void> 
             <void property="name"> 
              <string>label_container3Type</string> 
             </void> 
@@ -183,6 +187,10 @@
             <void method="setProperty"> 
              <string>font</string> 
              <object idref="Font0"/> 
+            </void> 
+            <void method="setProperty"> 
+             <string>visible</string> 
+             <boolean>false</boolean> 
             </void> 
             <void property="name"> 
              <string>container3Type</string> 

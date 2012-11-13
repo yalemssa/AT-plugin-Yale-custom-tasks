@@ -40,6 +40,9 @@ import java.util.*;
 import java.text.NumberFormat;
 
 public class BoxLookupAndUpdate {
+    // this is set to save the record to the database
+    public boolean saveToDB = false;
+
     private TreeMap<String, SeriesInfo> seriesInfo = new TreeMap<String, SeriesInfo>();
 
     private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
@@ -432,7 +435,7 @@ public class BoxLookupAndUpdate {
                     resourceId, resourceVersion, instanceCount);
 
             // store a copy of this for future access on the database
-            if (useCache) {
+            if (useCache || saveToDB) {
                 PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
             }
 
@@ -506,7 +509,7 @@ public class BoxLookupAndUpdate {
                 resourceId, resourceVersion, instanceCount);
 
         //store a copy of this for future access
-        if (useCache) {
+        if (useCache || saveToDB) {
             try {
                 PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
             } catch (Exception e) {
@@ -742,6 +745,7 @@ public class BoxLookupAndUpdate {
                 topLevelContainerName += " (" + barcode + ")";
             }
 
+            // this is no longer used and will probable be removed
             if (container3Type.length() != 0) {
                 instance.setContainer3Type(container3Type);
             }

@@ -99,6 +99,7 @@ public class YalePluginTasksFrame extends JFrame {
                         try {
                             if(boxLookupAndUpdate == null) {
                                 boxLookupAndUpdate = new BoxLookupAndUpdate();
+                                boxLookupAndUpdate.saveToDB = true;
                             }
 
                             //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(record, monitor, true);
