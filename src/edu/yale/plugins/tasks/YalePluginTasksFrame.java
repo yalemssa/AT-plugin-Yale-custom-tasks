@@ -42,12 +42,16 @@ public class YalePluginTasksFrame extends JFrame {
     private RemoteDBConnectDialog dbdialog = null;
 
     // method for find and storing the
-    BoxLookupAndUpdate boxLookupAndUpdate = null;
+    private BoxLookupAndUpdate boxLookupAndUpdate = null;
+
+    // the yale plugin task object
+    private YalePluginTasks yalePluginTasks;
 
     /**
      * Main constructor
      */
-    public YalePluginTasksFrame() {
+    public YalePluginTasksFrame(YalePluginTasks yalePluginTasks) {
+        this.yalePluginTasks  = yalePluginTasks;
         initComponents();
     }
 
@@ -236,8 +240,11 @@ public class YalePluginTasksFrame extends JFrame {
      * Method to index
      */
     private void indexButtonActionPerformed() {
-        YalePluginTasks yaleTasks = new YalePluginTasks();
-        yaleTasks.indexRecords(this, true);
+        yalePluginTasks.indexRecords(this, true);
+    }
+
+    private void showConfigDialogButtonActionPerformed() {
+        yalePluginTasks.showConfigDialog(this);
     }
 
     private void initComponents() {
@@ -247,10 +254,12 @@ public class YalePluginTasksFrame extends JFrame {
         contentPanel = new JPanel();
         assignContainerButton = new JButton();
         useCacheCheckBox = new JCheckBox();
+        saveCacheToDBCheckBox = new JCheckBox();
         boxSearchButton = new JButton();
         voyagerExportButton = new JButton();
         indexButton = new JButton();
         buttonBar = new JPanel();
+        showConfigDialogButton = new JButton();
         showDBDialogButton = new JButton();
         okButton = new JButton();
         CellConstraints cc = new CellConstraints();
@@ -269,6 +278,8 @@ public class YalePluginTasksFrame extends JFrame {
             {
                 contentPanel.setLayout(new FormLayout(
                     new ColumnSpec[] {
+                        FormFactory.DEFAULT_COLSPEC,
+                        FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
                         FormFactory.DEFAULT_COLSPEC,
                         FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
                         FormFactory.DEFAULT_COLSPEC
@@ -296,6 +307,11 @@ public class YalePluginTasksFrame extends JFrame {
                 useCacheCheckBox.setText("Use Database Cache");
                 useCacheCheckBox.setSelected(true);
                 contentPanel.add(useCacheCheckBox, cc.xy(3, 1));
+
+                //---- saveCacheToDBCheckBox ----
+                saveCacheToDBCheckBox.setText("Always Save Cache");
+                saveCacheToDBCheckBox.setSelected(true);
+                contentPanel.add(saveCacheToDBCheckBox, cc.xy(5, 1));
 
                 //---- boxSearchButton ----
                 boxSearchButton.setText("Box Search");
@@ -328,10 +344,21 @@ public class YalePluginTasksFrame extends JFrame {
                     new ColumnSpec[] {
                         FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
                         FormFactory.DEFAULT_COLSPEC,
+                        FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
+                        FormFactory.DEFAULT_COLSPEC,
                         FormFactory.GLUE_COLSPEC,
                         FormFactory.BUTTON_COLSPEC
                     },
                     RowSpec.decodeSpecs("pref")));
+
+                //---- showConfigDialogButton ----
+                showConfigDialogButton.setText("Show Config Dialog");
+                showConfigDialogButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        showConfigDialogButtonActionPerformed();
+                    }
+                });
+                buttonBar.add(showConfigDialogButton, cc.xy(2, 1));
 
                 //---- showDBDialogButton ----
                 showDBDialogButton.setText("Show Resource Records");
@@ -340,7 +367,7 @@ public class YalePluginTasksFrame extends JFrame {
                         showDBDialogButtonActionPerformed();
                     }
                 });
-                buttonBar.add(showDBDialogButton, cc.xy(2, 1));
+                buttonBar.add(showDBDialogButton, cc.xy(4, 1));
 
                 //---- okButton ----
                 okButton.setText("Exit");
@@ -349,7 +376,7 @@ public class YalePluginTasksFrame extends JFrame {
                         okButtonActionPerformed();
                     }
                 });
-                buttonBar.add(okButton, cc.xy(4, 1));
+                buttonBar.add(okButton, cc.xy(6, 1));
             }
             dialogPane.add(buttonBar, BorderLayout.SOUTH);
         }
@@ -365,10 +392,12 @@ public class YalePluginTasksFrame extends JFrame {
     private JPanel contentPanel;
     private JButton assignContainerButton;
     private JCheckBox useCacheCheckBox;
+    private JCheckBox saveCacheToDBCheckBox;
     private JButton boxSearchButton;
     private JButton voyagerExportButton;
     private JButton indexButton;
     private JPanel buttonBar;
+    private JButton showConfigDialogButton;
     private JButton showDBDialogButton;
     private JButton okButton;
     // JFormDesigner - End of variables declaration  //GEN-END:variables

@@ -1,4 +1,3 @@
-
 package edu.yale.plugins.tasks;
 
 import edu.yale.plugins.tasks.model.ATContainer;
@@ -37,45 +36,45 @@ import java.util.HashMap;
 /**
  * Archivists' Toolkit(TM) Copyright � 2005-2007 Regents of the University of California, New York University, & Five Colleges, Inc.
  * All rights reserved.
- *
+ * <p/>
  * This software is free. You can redistribute it and / or modify it under the terms of the Educational Community License (ECL)
  * version 1.0 (http://www.opensource.org/licenses/ecl1.php)
- *
+ * <p/>
  * This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
  * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the ECL license for more details about permissions and limitations.
- *
- *
+ * <p/>
+ * <p/>
  * Archivists' Toolkit(TM)
  * http://www.archiviststoolkit.org
  * info@archiviststoolkit.org
- *
- * A simple plugin to test the functionality of 
- *
+ * <p/>
+ * A simple plugin to allow more efficient inputting of yale data
+ * <p/>
  * Created by IntelliJ IDEA.
  *
- * @author: Nathan Stevens
+ * @author: Lee Mandell and Nathan Stevens
  * Date: Feb 10, 2009
  * Time: 1:07:45 PM
  */
 
 public class YalePluginTasks extends Plugin implements ATPlugin {
-	public static final String APPLY_CONTAINER_INFORMATION_TASK = "Assign Container Information";
-	public static final String EXPORT_VOYAGER_INFORMATION = "Export Voyager Information";
-	public static final String PARTIAL_EAD_IMPORT = "Partial EAD Import";
-	public static final String BOX_LOOKUP = "Box Lookup";
+    public static final String APPLY_CONTAINER_INFORMATION_TASK = "Assign Container Information";
+    public static final String EXPORT_VOYAGER_INFORMATION = "Export Voyager Information";
+    public static final String PARTIAL_EAD_IMPORT = "Partial EAD Import";
+    public static final String BOX_LOOKUP = "Box Lookup";
     public static final String INDEX_RECORDS = "Index Records";
 
-	public static final String PLUGIN_NAME = "Yale Tasks";
+    public static final String PLUGIN_NAME = "Yale Tasks";
 
-	protected ApplicationFrame mainFrame;
-	protected ArchDescriptionFields parentEditorFields;
-	private ResourcesCommon resourceOrComponent;
+    protected ApplicationFrame mainFrame;
+    protected ArchDescriptionFields parentEditorFields;
+    private ResourcesCommon resourceOrComponent;
 
-	protected YaleAnalogInstancesFields editorFields;
-	private DomainEditor analogInstanceEditor;
-	private JTable callingTable;
-	private int selectedRow;
-	protected ArchDescriptionAnalogInstances analogInstance;
+    protected YaleAnalogInstancesFields editorFields;
+    private DomainEditor analogInstanceEditor;
+    private JTable callingTable;
+    private int selectedRow;
+    protected ArchDescriptionAnalogInstances analogInstance;
 
     // class finding and storing container information
     BoxLookupAndUpdate boxLookupAndUpdate = null;
@@ -87,97 +86,105 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     // boolean used to specify that caching should be used
     private boolean useCache = true;
 
+    // the config dialog use for configuring the application
+    private YalePluginTasksConfigDialog configDialog;
+
     // the default constructor
-	public YalePluginTasks() { }
+    public YalePluginTasks() {
+    }
 
-	// get the category this plugin belongs to
-	public String getCategory() {
-		return ATPlugin.DEFAULT_CATEGORY;
-	}
+    // get the category this plugin belongs to
+    public String getCategory() {
+        return ATPlugin.DEFAULT_CATEGORY;
+    }
 
-	// get the name of this plugin
-	public String getName() {
-		return PLUGIN_NAME;
-	}
+    // get the name of this plugin
+    public String getName() {
+        return PLUGIN_NAME;
+    }
 
-	// Method to set the main frame
-	public void setApplicationFrame(ApplicationFrame mainFrame) {
-		this.mainFrame = mainFrame;
-	}
+    // Method to set the main frame
+    public void setApplicationFrame(ApplicationFrame mainFrame) {
+        this.mainFrame = mainFrame;
+    }
 
-	// Method that display the window
-	public void showPlugin() {
-	}
+    // Method that display the window
+    public void showPlugin() {
+    }
 
-	// method to display a plugin that needs a parent frame
-	public void showPlugin(Frame owner) {
-	}
+    // method to display a plugin that needs a parent frame
+    public void showPlugin(Frame owner) {
+    }
 
-	// method to display a plugin that needs a parent dialog
-	public void showPlugin(Dialog owner) {
-	}
+    // method to display a plugin that needs a parent dialog
+    public void showPlugin(Dialog owner) {
+    }
 
-	// Method to return the jpanels for plugins that are in an AT editor
-	public HashMap getEmbeddedPanels() {
-		return null;
-	}
+    // Method to return the jpanels for plugins that are in an AT editor
+    public HashMap getEmbeddedPanels() {
+        return null;
+    }
 
     public HashMap getRapidDataEntryPlugins() {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public void setEditorField(DomainEditorFields domainEditorFields) {
-	}
+    }
 
-	// Method to set the editor field component
-	public void setEditorField(ArchDescriptionFields editorField) {
-	}
+    // Method to set the editor field component
+    public void setEditorField(ArchDescriptionFields editorField) {
+    }
 
-	/**
-	 * Method to set the domain object for this plugin
-	 */
-	public void setModel(DomainObject domainObject, InfiniteProgressPanel monitor) {
-	}
+    /**
+     * Method to set the domain object for this plugin
+     */
+    public void setModel(DomainObject domainObject, InfiniteProgressPanel monitor) {
+    }
 
-	/**
-	 * Method to get the table from which the record was selected
-	 * @param callingTable The table containing the record
-	 */
-	public void setCallingTable(JTable callingTable) {
-	}
+    /**
+     * Method to get the table from which the record was selected
+     *
+     * @param callingTable The table containing the record
+     */
+    public void setCallingTable(JTable callingTable) {
+    }
 
-	/**
-	 * Method to set the selected row of the calling table
-	 * @param selectedRow
-	 */
-	public void setSelectedRow(int selectedRow) {
-	}
+    /**
+     * Method to set the selected row of the calling table
+     *
+     * @param selectedRow
+     */
+    public void setSelectedRow(int selectedRow) {
+    }
 
-	/**
-	 * Method to set the current record number along with the total number of records
-	 * @param recordNumber The current record number
-	 * @param totalRecords The total number of records
-	 */
-	public void setRecordPositionText(int recordNumber, int totalRecords) { }
+    /**
+     * Method to set the current record number along with the total number of records
+     *
+     * @param recordNumber The current record number
+     * @param totalRecords The total number of records
+     */
+    public void setRecordPositionText(int recordNumber, int totalRecords) {
+    }
 
-	// Method to do a specific task in the plugin
-	public void doTask(String task) {
-		DomainTableWorkSurface workSurface= mainFrame.getWorkSurfaceContainer().getCurrentWorkSurface();
+    // Method to do a specific task in the plugin
+    public void doTask(String task) {
+        DomainTableWorkSurface workSurface = mainFrame.getWorkSurfaceContainer().getCurrentWorkSurface();
 
-        final DomainSortableTable worksurfaceTable = (DomainSortableTable)workSurface.getTable();
+        final DomainSortableTable worksurfaceTable = (DomainSortableTable) workSurface.getTable();
 
         final ResourcesDAO access = new ResourcesDAO();
 
         if (task.equals(APPLY_CONTAINER_INFORMATION_TASK)) {
-			if (workSurface.getClazz() != Resources.class) {
-				JOptionPane.showMessageDialog(mainFrame, "This function only works for the resources module");
-			} else if (worksurfaceTable.getSelectedRowCount() != 1) {
-				JOptionPane.showMessageDialog(mainFrame, "You must select one resource record");
-			} else {
-				Thread performer = new Thread(new Runnable() {
-					public void run() {
+            if (workSurface.getClazz() != Resources.class) {
+                JOptionPane.showMessageDialog(mainFrame, "This function only works for the resources module");
+            } else if (worksurfaceTable.getSelectedRowCount() != 1) {
+                JOptionPane.showMessageDialog(mainFrame, "You must select one resource record");
+            } else {
+                Thread performer = new Thread(new Runnable() {
+                    public void run() {
                         // make sure we have the class that looks up records
-                        if(boxLookupAndUpdate == null) {
+                        if (boxLookupAndUpdate == null) {
                             try {
                                 boxLookupAndUpdate = new BoxLookupAndUpdate();
                             } catch (Exception e) {
@@ -189,8 +196,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             System.out.println("BoxLookupAndUpdate Already Created ...");
                         }
 
-						InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(mainFrame, 1000, true);
-						monitor.start("Gathering Containers...");
+                        InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(mainFrame, 1000, true);
+                        monitor.start("Gathering Containers...");
 
                         Resources resource = (Resources) worksurfaceTable.getFilteredList().get(worksurfaceTable.getSelectedRow());
 
@@ -218,31 +225,31 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             }
                         };
                         SwingUtilities.invokeLater(doWorkRunnable);
-					}
-				}, "Gather containers");
-				performer.start();
-			}
+                    }
+                }, "Gather containers");
+                performer.start();
+            }
 
-		} else if (task.equals(EXPORT_VOYAGER_INFORMATION)) {
-			if (workSurface.getClazz() != Resources.class) {
-				JOptionPane.showMessageDialog(mainFrame, "This function only works for the resources module");
-			} else if (worksurfaceTable.getSelectedRowCount() == 0) {
-				JOptionPane.showMessageDialog(mainFrame, "You must select at least one resource record");
-			} else {
-				ATFileChooser filechooser = new ATFileChooser();
+        } else if (task.equals(EXPORT_VOYAGER_INFORMATION)) {
+            if (workSurface.getClazz() != Resources.class) {
+                JOptionPane.showMessageDialog(mainFrame, "This function only works for the resources module");
+            } else if (worksurfaceTable.getSelectedRowCount() == 0) {
+                JOptionPane.showMessageDialog(mainFrame, "You must select at least one resource record");
+            } else {
+                ATFileChooser filechooser = new ATFileChooser();
 
-                if(filechooser.showSaveDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
-					final File outputFile = filechooser.getSelectedFile();
+                if (filechooser.showSaveDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
+                    final File outputFile = filechooser.getSelectedFile();
 
                     Thread performer = new Thread(new Runnable() {
-						public void run() {
-							InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(ApplicationFrame.getInstance(), 1000);
-							monitor.start("Exporting Voyager Information...");
+                        public void run() {
+                            InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(ApplicationFrame.getInstance(), 1000);
+                            monitor.start("Exporting Voyager Information...");
 
                             long resourceId;
-							Resources selectedResource, resource;
+                            Resources selectedResource, resource;
 
-							PrintWriter writer = null;
+                            PrintWriter writer = null;
 
                             ContainerGatherer gatherer;
 
@@ -253,74 +260,74 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             timer.reset();
 
                             try {
-								writer = new PrintWriter(outputFile);
-								int totalRecords = worksurfaceTable.getSelectedObjects().size();
+                                writer = new PrintWriter(outputFile);
+                                int totalRecords = worksurfaceTable.getSelectedObjects().size();
 
-								for (int i: worksurfaceTable.getSelectedRows())  {
-									selectedResource = (Resources) worksurfaceTable.getFilteredList().get(i);
-									resourceId = selectedResource.getResourceId();
-									resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
+                                for (int i : worksurfaceTable.getSelectedRows()) {
+                                    selectedResource = (Resources) worksurfaceTable.getFilteredList().get(i);
+                                    resourceId = selectedResource.getResourceId();
+                                    resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
 
                                     monitor.setTextLine("Exporting resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
 
                                     gatherer = new ContainerGatherer(resource, useCache);
                                     ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
 
-                                    for (ATContainer container: containerCollection.getContainers()) {
-										accessionNumber = container.getAccessionNumber();
-										writer.println(resource.getResourceIdentifier2() + "," +
-												containerCollection.getVoyagerHoldingsKey() + "," +
-												accessionNumber + "," +
-												containerCollection.lookupAccessionDate(accessionNumber) + "," +
-												container.getContainerLabel() + "," +
-												"," + //just a dummy for box number extension
-												container.getBarcode() + ",");
-									}
+                                    for (ATContainer container : containerCollection.getContainers()) {
+                                        accessionNumber = container.getAccessionNumber();
+                                        writer.println(resource.getResourceIdentifier2() + "," +
+                                                containerCollection.getVoyagerHoldingsKey() + "," +
+                                                accessionNumber + "," +
+                                                containerCollection.lookupAccessionDate(accessionNumber) + "," +
+                                                container.getContainerLabel() + "," +
+                                                "," + //just a dummy for box number extension
+                                                container.getBarcode() + ",");
+                                    }
 
                                     // close the long session, otherwise memory would quickly run out
                                     access.closeLongSession();
                                     access.getLongSession();
-								}
+                                }
 
                                 writer.flush();
 
                                 System.out.println("Total Time to export: " + MyTimer.toString(timer.elapsedTimeMillis()));
-							} catch (LookupException e) {
-								monitor.close();
-								new ErrorDialog("Error loading resource", e).showDialog();
-							} catch (FileNotFoundException e) {
-								monitor.close();
-								new ErrorDialog("Error creating file writer", e).showDialog();
-							} catch (PersistenceException e) {
-								new ErrorDialog("Error looking up accession date", e).showDialog();
-							} catch (SQLException e) {
+                            } catch (LookupException e) {
+                                monitor.close();
+                                new ErrorDialog("Error loading resource", e).showDialog();
+                            } catch (FileNotFoundException e) {
+                                monitor.close();
+                                new ErrorDialog("Error creating file writer", e).showDialog();
+                            } catch (PersistenceException e) {
+                                new ErrorDialog("Error looking up accession date", e).showDialog();
+                            } catch (SQLException e) {
                                 new ErrorDialog("Error resetting the long session", e).showDialog();
                             } finally {
-								writer.close();
-								monitor.close();
-							}
-						}
-					}, "Exporting Voyager Information");
-					performer.start();
-				}
-			}
-		} else if (task.equals(BOX_LOOKUP)) {
-			try {
-				BoxLookupReturnScreen returnScreen = new BoxLookupReturnScreen(mainFrame);
-				returnScreen.showDialog();
-			} catch (ClassNotFoundException e) {
-				new ErrorDialog("", e).showDialog();
-			} catch (SQLException e) {
-				new ErrorDialog("", e).showDialog();
-			}
-		} else if (task.equals(INDEX_RECORDS)) {
+                                writer.close();
+                                monitor.close();
+                            }
+                        }
+                    }, "Exporting Voyager Information");
+                    performer.start();
+                }
+            }
+        } else if (task.equals(BOX_LOOKUP)) {
+            try {
+                BoxLookupReturnScreen returnScreen = new BoxLookupReturnScreen(mainFrame);
+                returnScreen.showDialog();
+            } catch (ClassNotFoundException e) {
+                new ErrorDialog("", e).showDialog();
+            } catch (SQLException e) {
+                new ErrorDialog("", e).showDialog();
+            }
+        } else if (task.equals(INDEX_RECORDS)) {
             if (mainFrame.getCurrentUserAccessClass() == 5) {
                 indexRecords(mainFrame, true);
-            }  else {
+            } else {
                 JOptionPane.showMessageDialog(mainFrame, "This function only works for level 5 users");
             }
         }
-	}
+    }
 
     public boolean doTask(String s, String[] strings) {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
@@ -328,18 +335,18 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
 
     // Method to get the list of specific task the plugin can perform
-	public String[] getTaskList() {
+    public String[] getTaskList() {
         String[] tasks = new String[]{APPLY_CONTAINER_INFORMATION_TASK,
-                    EXPORT_VOYAGER_INFORMATION,
-                    BOX_LOOKUP, INDEX_RECORDS};
+                EXPORT_VOYAGER_INFORMATION,
+                BOX_LOOKUP, INDEX_RECORDS};
 
-		return tasks;
-	}
+        return tasks;
+    }
 
-	// Method to return the editor type for this plugin
-	public String getEditorType() {
-		return null;
-	}
+    // Method to return the editor type for this plugin
+    public String getEditorType() {
+        return null;
+    }
 
     /**
      * Method to index records i.e cache box and container information in the database
@@ -351,7 +358,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
             public void run() {
                 InfiniteProgressPanel monitor = null;
 
-                if(gui) {
+                if (gui) {
                     monitor = ATProgressUtil.createModalProgressMonitor(parent, 1000, true);
                     monitor.start("Generating index...");
                 }
@@ -371,8 +378,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                     int totalRecords = records.size();
                     int i = 1;
-                    for (Object object: records) {
-                        if(monitor != null && monitor.isProcessCancelled()) {
+                    for (Object object : records) {
+                        if (monitor != null && monitor.isProcessCancelled()) {
                             System.out.println("Indexing cancelled ...");
                             break;
                         }
@@ -400,23 +407,23 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                     System.out.println("Total Time to export: " + MyTimer.toString(timer.elapsedTimeMillis()));
                 } catch (LookupException e) {
-                    if(gui) {
+                    if (gui) {
                         monitor.close();
                         new ErrorDialog("Error loading resource", e).showDialog();
                     }
                     e.printStackTrace();
                 } catch (PersistenceException e) {
-                    if(gui) {
+                    if (gui) {
                         new ErrorDialog("Error looking up accession date", e).showDialog();
                     }
                     e.printStackTrace();
                 } catch (SQLException e) {
-                    if(gui) {
+                    if (gui) {
                         new ErrorDialog("Error resetting the long session", e).showDialog();
                     }
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {
-                    if(gui) {
+                    if (gui) {
                         monitor.close();
                         new ErrorDialog("Exception", e).showDialog();
                     }
@@ -431,43 +438,50 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
         performer.start();
     }
 
-	// code that is executed when plugin starts. not used here
-	protected void doStart()  {	}
+    // code that is executed when plugin starts. not used here
+    protected void doStart() {
+    }
 
-	// code that is executed after plugin stops. not used here
-	protected void doStop()  { }
+    // code that is executed after plugin stops. not used here
+    protected void doStop() {
+    }
 
     /**
-     * Method to launch the assignment resources dialog
+     * Method to display the config dialog
      *
-     * @param dialog
-     * @param access
-     * @param resource
-     * @throws PersistenceException
-     * @throws SQLException
+     * @param frame
      */
-    private void finishAssignContainerInformation(YaleLocationAssignmentResources dialog, ResourcesDAO access, Resources resource) throws PersistenceException, SQLException {
-		if (dialog != null) {
-			mainFrame.setRecordClean();
-			dialog.showDialog();
-			if (mainFrame.getRecordDirty()) {
-				access.updateLongSession(resource);
-			} else {
-				access.closeLongSession();
-			}
-		}
-	}
+    public void showConfigDialog(Frame frame) {
+        if (configDialog == null) {
+            configDialog = new YalePluginTasksConfigDialog(frame);
+            configDialog.pack();
+        }
 
-	// main method for testing only
-	public static void main(String[] args) {
+        // TODO load the config record from the database
+
+        // display the dialog now
+        configDialog.setVisible(true);
+    }
+
+    /**
+     * Method to display the frame when running in stand alone mode
+     */
+    public void showApplicationFrame() {
+        // display the dialog that allow running the commands
+        YalePluginTasksFrame yalePluginTasksFrame = new YalePluginTasksFrame(this);
+        yalePluginTasksFrame.pack();
+        yalePluginTasksFrame.setVisible(true);
+    }
+
+    // main method for testing only
+    public static void main(String[] args) {
         // load all the hibernate stuff that the AT application typically does
         startHibernate();
 
-        // display the dialog that allow running the commands
-        YalePluginTasksFrame yalePluginTasksFrame = new YalePluginTasksFrame();
-        yalePluginTasksFrame.pack();
-        yalePluginTasksFrame.setVisible(true);
-	}
+        // display the application frame
+        YalePluginTasks yalePlugin = new YalePluginTasks();
+        yalePlugin.showApplicationFrame();
+    }
 
     /**
      * Method to load the hibernate engine and initial needed when running
@@ -557,5 +571,4 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
             System.exit(1);
         }
     }
-
 }
