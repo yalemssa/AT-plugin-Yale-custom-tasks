@@ -11,21 +11,16 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 import edu.yale.plugins.tasks.dbdialog.RemoteDBConnectDialog;
 import edu.yale.plugins.tasks.model.ATContainer;
 import edu.yale.plugins.tasks.model.ATContainerCollection;
-import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import edu.yale.plugins.tasks.utils.ContainerGatherer;
-import org.archiviststoolkit.ApplicationFrame;
 import org.archiviststoolkit.dialog.ErrorDialog;
-import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
-import org.archiviststoolkit.model.ContainerGroup;
 import org.archiviststoolkit.model.Resources;
 import org.archiviststoolkit.mydomain.LookupException;
 import org.archiviststoolkit.mydomain.PersistenceException;
@@ -52,6 +47,7 @@ public class YalePluginTasksFrame extends JFrame {
      */
     public YalePluginTasksFrame(YalePluginTasks yalePluginTasks) {
         this.yalePluginTasks  = yalePluginTasks;
+        this.yalePluginTasks.initConfigDialog(this);
         initComponents();
     }
 
@@ -103,7 +99,7 @@ public class YalePluginTasksFrame extends JFrame {
                         try {
                             if(boxLookupAndUpdate == null) {
                                 boxLookupAndUpdate = new BoxLookupAndUpdate();
-                                boxLookupAndUpdate.saveToDB = true;
+                                boxLookupAndUpdate.alwaysSaveCache = true;
                             }
 
                             //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(record, monitor, true);
@@ -237,14 +233,14 @@ public class YalePluginTasksFrame extends JFrame {
     }
 
     /**
-     * Method to index
+     * Method to index the records
      */
     private void indexButtonActionPerformed() {
-        yalePluginTasks.indexRecords(this, true);
+        yalePluginTasks.indexRecords(this, true, true);
     }
 
     private void showConfigDialogButtonActionPerformed() {
-        yalePluginTasks.showConfigDialog(this);
+        yalePluginTasks.showConfigDialog();
     }
 
     private void initComponents() {

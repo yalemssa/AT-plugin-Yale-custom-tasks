@@ -6,6 +6,7 @@ import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import edu.yale.plugins.tasks.utils.ContainerGatherer;
+import edu.yale.plugins.tasks.utils.YalePluginTasksConfigDialog;
 import org.archiviststoolkit.ApplicationFrame;
 import org.archiviststoolkit.dialog.ATFileChooser;
 import org.archiviststoolkit.dialog.ErrorDialog;
@@ -62,7 +63,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     public static final String EXPORT_VOYAGER_INFORMATION = "Export Voyager Information";
     public static final String PARTIAL_EAD_IMPORT = "Partial EAD Import";
     public static final String BOX_LOOKUP = "Box Lookup";
-    public static final String INDEX_RECORDS = "Index Records";
+    public static final String SHOW_CONFIG = "Show Config Dialog";
 
     public static final String PLUGIN_NAME = "Yale Tasks";
 
@@ -82,9 +83,6 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     public static final String BOX_RECORD_DATA_NAME = "box_record";
     public static final String AT_CONTAINER_DATA_NAME = "container_record";
     public static final String CONFIG_DATA_NAME = "config_record";
-
-    // boolean used to specify that caching should be used
-    private boolean useCache = true;
 
     // the config dialog use for configuring the application
     private YalePluginTasksConfigDialog configDialog;
@@ -106,6 +104,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     // Method to set the main frame
     public void setApplicationFrame(ApplicationFrame mainFrame) {
         this.mainFrame = mainFrame;
+        initConfigDialog(this.mainFrame);
     }
 
     // Method that display the window
@@ -187,6 +186,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         if (boxLookupAndUpdate == null) {
                             try {
                                 boxLookupAndUpdate = new BoxLookupAndUpdate();
+                                boxLookupAndUpdate.alwaysSaveCache = configDialog.getAlwaysSaveCache();
                             } catch (Exception e) {
                                 JOptionPane.showMessageDialog(mainFrame, "Unable to connect to database");
                                 e.printStackTrace();
@@ -209,7 +209,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             return;
                         }
 
-                        final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, useCache);
+                        final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, configDialog.getUseCacheRecords());
 
                         // close the monitor
                         monitor.close();
@@ -270,7 +270,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                                     monitor.setTextLine("Exporting resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
 
-                                    gatherer = new ContainerGatherer(resource, useCache);
+                                    gatherer = new ContainerGatherer(resource, configDialog.getUseCacheRecords());
                                     ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
 
                                     for (ATContainer container : containerCollection.getContainers()) {
@@ -320,11 +320,11 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
             } catch (SQLException e) {
                 new ErrorDialog("", e).showDialog();
             }
-        } else if (task.equals(INDEX_RECORDS)) {
+        } else if (task.equals(SHOW_CONFIG)) {
             if (mainFrame.getCurrentUserAccessClass() == 5) {
-                indexRecords(mainFrame, true);
+                showConfigDialog();
             } else {
-                JOptionPane.showMessageDialog(mainFrame, "This function only works for level 5 users");
+                JOptionPane.showMessageDialog(mainFrame, "This function is only available for level 5 users");
             }
         }
     }
@@ -338,7 +338,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     public String[] getTaskList() {
         String[] tasks = new String[]{APPLY_CONTAINER_INFORMATION_TASK,
                 EXPORT_VOYAGER_INFORMATION,
-                BOX_LOOKUP, INDEX_RECORDS};
+                BOX_LOOKUP, SHOW_CONFIG};
 
         return tasks;
     }
@@ -351,7 +351,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     /**
      * Method to index records i.e cache box and container information in the database
      */
-    public void indexRecords(final JFrame parent, final boolean gui) {
+    public void indexRecords(final Window parent, final boolean updateAllRecords, final boolean gui) {
         final ResourcesDAO access = new ResourcesDAO();
 
         Thread performer = new Thread(new Runnable() {
@@ -392,10 +392,12 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                         // index the containers
                         gatherer = new ContainerGatherer(resource, true);
+                        gatherer.updateAllRecords = updateAllRecords;
                         ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
 
                         // index the boxes
                         boxLookupAndUpdate = new BoxLookupAndUpdate();
+                        boxLookupAndUpdate.updateAllRecords = updateAllRecords;
                         BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, true);
 
                         // close the long session, otherwise memory would quickly run out
@@ -447,20 +449,27 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
     }
 
     /**
-     * Method to display the config dialog
+     * Method to init the config dialog
      *
      * @param frame
      */
-    public void showConfigDialog(Frame frame) {
+    public void initConfigDialog(Frame frame) {
         if (configDialog == null) {
             configDialog = new YalePluginTasksConfigDialog(frame);
             configDialog.pack();
+            configDialog.setYalePluginTasks(this);
         }
 
         // TODO load the config record from the database
+    }
 
-        // display the dialog now
-        configDialog.setVisible(true);
+    /**
+     * Method to display tje config dialog
+     */
+    public void showConfigDialog() {
+        if(configDialog != null) {
+            configDialog.setVisible(true);
+        }
     }
 
     /**

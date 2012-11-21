@@ -40,6 +40,8 @@ import java.util.Date;
 import java.text.SimpleDateFormat;
 
 public class ContainerGatherer {
+    // this is used to force update of all record even if they are the same
+    public boolean updateAllRecords = false;
 
 	private Resources resource;
     private boolean useCache;
@@ -221,6 +223,10 @@ public class ContainerGatherer {
 	}
 
     private ATContainerCollection loadATContainerRecordFromDatabase(Long resourceId) {
-        return PluginDataUtils.getATContainerRecord(resourceId);
+        if(!updateAllRecords) {
+            return PluginDataUtils.getATContainerRecord(resourceId);
+        } else {
+            return null;
+        }
     }
 }

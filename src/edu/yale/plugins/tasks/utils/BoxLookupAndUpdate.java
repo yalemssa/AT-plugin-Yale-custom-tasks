@@ -41,7 +41,10 @@ import java.text.NumberFormat;
 
 public class BoxLookupAndUpdate {
     // this is set to save the record to the database
-    public boolean saveToDB = false;
+    public boolean alwaysSaveCache = false;
+
+    // this is used to force update of all record even if they are the same
+    public boolean updateAllRecords = false;
 
     private TreeMap<String, SeriesInfo> seriesInfo = new TreeMap<String, SeriesInfo>();
 
@@ -435,7 +438,7 @@ public class BoxLookupAndUpdate {
                     resourceId, resourceVersion, instanceCount);
 
             // store a copy of this for future access on the database
-            if (useCache || saveToDB) {
+            if (useCache || alwaysSaveCache) {
                 PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
             }
 
@@ -456,7 +459,11 @@ public class BoxLookupAndUpdate {
      * @param resourceId
      */
     private BoxLookupReturnRecordsCollection loadBoxLookupReturnRecordFromDatabase(Long resourceId) {
-        return PluginDataUtils.getBoxLookupReturnRecord(resourceId);
+        if(!updateAllRecords) {
+            return PluginDataUtils.getBoxLookupReturnRecord(resourceId);
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -509,7 +516,7 @@ public class BoxLookupAndUpdate {
                 resourceId, resourceVersion, instanceCount);
 
         //store a copy of this for future access
-        if (useCache || saveToDB) {
+        if (useCache || alwaysSaveCache) {
             try {
                 PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
             } catch (Exception e) {
@@ -819,7 +826,6 @@ public class BoxLookupAndUpdate {
         return count;
     }
 
-
     /**
      * Method add a location to a set of analog instance
      *
@@ -847,6 +853,10 @@ public class BoxLookupAndUpdate {
         }
 
         return count;
+    }
+
+    public void setUpdateAllRecords(boolean updateAllRecord) {
+
     }
 
     private class ContainerInfo {
