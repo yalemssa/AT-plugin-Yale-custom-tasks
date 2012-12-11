@@ -855,10 +855,6 @@ public class BoxLookupAndUpdate {
         return count;
     }
 
-    public void setUpdateAllRecords(boolean updateAllRecord) {
-
-    }
-
     private class ContainerInfo {
 
         private String label;

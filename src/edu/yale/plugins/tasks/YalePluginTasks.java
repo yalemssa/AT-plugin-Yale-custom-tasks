@@ -243,7 +243,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                     Thread performer = new Thread(new Runnable() {
                         public void run() {
-                            InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(ApplicationFrame.getInstance(), 1000);
+                            InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(mainFrame, 1000);
                             monitor.start("Exporting Voyager Information...");
 
                             long resourceId;
@@ -262,18 +262,32 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             try {
                                 writer = new PrintWriter(outputFile);
                                 int totalRecords = worksurfaceTable.getSelectedObjects().size();
+                                int count = 0;
+                                int containerCount = 0;
+                                int totalContainers = 0;
 
                                 for (int i : worksurfaceTable.getSelectedRows()) {
                                     selectedResource = (Resources) worksurfaceTable.getFilteredList().get(i);
                                     resourceId = selectedResource.getResourceId();
                                     resource = (Resources) access.findByPrimaryKeyLongSession(resourceId);
 
-                                    monitor.setTextLine("Exporting resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
+                                    count++;
+                                    monitor.setTextLine("Exporting resource " + count + " of " + totalRecords + " - " + resource.getTitle(), 1);
 
-                                    gatherer = new ContainerGatherer(resource, configDialog.getUseCacheRecords());
+                                    gatherer = new ContainerGatherer(resource, configDialog.getUseCacheRecords(), configDialog.getAlwaysSaveCache());
                                     ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
 
                                     for (ATContainer container : containerCollection.getContainers()) {
+                                        totalContainers++;
+
+                                        // checks to see if the voyager information for this container has already
+                                        // been exported
+                                        if(gatherer.isExportedToVoyager(container) && !configDialog.getAlwaysExportVoyagerInformation()) {
+                                            String message = "Container: " + container.getContainerLabel() + " already exported ...";
+                                            monitor.setTextLine(message, 3);
+                                            continue;
+                                        }
+
                                         accessionNumber = container.getAccessionNumber();
                                         writer.println(resource.getResourceIdentifier2() + "," +
                                                 containerCollection.getVoyagerHoldingsKey() + "," +
@@ -282,6 +296,10 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                                                 container.getContainerLabel() + "," +
                                                 "," + //just a dummy for box number extension
                                                 container.getBarcode() + ",");
+
+                                        // save the fact that this record was already exported
+                                        gatherer.updateExportedToVoyager(container, true);
+                                        containerCount++;
                                     }
 
                                     // close the long session, otherwise memory would quickly run out
@@ -291,7 +309,18 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
                                 writer.flush();
 
-                                System.out.println("Total Time to export: " + MyTimer.toString(timer.elapsedTimeMillis()));
+                                // display a message dialog
+                                monitor.close();
+                                String message = "Total Time to export: " + MyTimer.toString(timer.elapsedTimeMillis()) +
+                                        "\nResource(s) processed: " + count +
+                                        "\nContainers exported: " + containerCount + " out of "  + totalContainers;
+
+                                JOptionPane.showMessageDialog(mainFrame,
+                                        message,
+                                        "Export of Voyager Information Completed",
+                                        JOptionPane.PLAIN_MESSAGE);
+
+                                System.out.println(message);
                             } catch (LookupException e) {
                                 monitor.close();
                                 new ErrorDialog("Error loading resource", e).showDialog();
@@ -302,6 +331,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                                 new ErrorDialog("Error looking up accession date", e).showDialog();
                             } catch (SQLException e) {
                                 new ErrorDialog("Error resetting the long session", e).showDialog();
+                            } catch (Exception e) {
+                                new ErrorDialog("Error updating export to voyager boolean", e).showDialog();
                             } finally {
                                 writer.close();
                                 monitor.close();
@@ -391,8 +422,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         monitor.setTextLine("Indexing resource " + i + " of " + totalRecords + " - " + resource.getTitle(), 1);
 
                         // index the containers
-                        gatherer = new ContainerGatherer(resource, true);
-                        gatherer.updateAllRecords = updateAllRecords;
+                        gatherer = new ContainerGatherer(resource, true, false);
+                        gatherer.alwaysSaveCache = updateAllRecords;
                         ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
 
                         // index the boxes
@@ -407,7 +438,18 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         i++;
                     }
 
-                    System.out.println("Total Time to export: " + MyTimer.toString(timer.elapsedTimeMillis()));
+                    String message = "Total time to export " + i + " records: " + MyTimer.toString(timer.elapsedTimeMillis());
+
+                    if (gui) {
+                        monitor.close();
+
+                        JOptionPane.showMessageDialog(parent,
+                                message,
+                                "Record Indexing Completed",
+                                JOptionPane.PLAIN_MESSAGE);
+                    }
+
+                    System.out.println(message);
                 } catch (LookupException e) {
                     if (gui) {
                         monitor.close();
@@ -470,6 +512,15 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
         if(configDialog != null) {
             configDialog.setVisible(true);
         }
+    }
+
+    /**
+     * Method to return the configuration dialog
+     *
+     * @return
+     */
+    public YalePluginTasksConfigDialog getConfigDialog() {
+        return configDialog;
     }
 
     /**

@@ -55,6 +55,15 @@ public class YalePluginTasksConfigDialog extends JDialog {
         return saveCacheToDBCheckBox.isSelected();
     }
 
+    /**
+     * Method to check to see if to always export the voyager information
+     *
+     * @return
+     */
+    public boolean getAlwaysExportVoyagerInformation() {
+       return exportVoyagerCheckBox.isSelected();
+    }
+
     private void okButtonActionPerformed() {
         // TODO save setting to the database
 
@@ -82,6 +91,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         contentPanel = new JPanel();
         useCacheRecordsCheckBox = new JCheckBox();
         saveCacheToDBCheckBox = new JCheckBox();
+        exportVoyagerCheckBox = new JCheckBox();
         runIndexButton = new JButton();
         updateAllRecordsCheckBox = new JCheckBox();
         buttonBar = new JPanel();
@@ -90,7 +100,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Config Dialog v2.0b4");
+        setTitle("Yale Tasks Config Dialog v2.0b5");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
@@ -112,6 +122,8 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC
                     }));
 
@@ -125,6 +137,10 @@ public class YalePluginTasksConfigDialog extends JDialog {
                 saveCacheToDBCheckBox.setSelected(true);
                 contentPanel.add(saveCacheToDBCheckBox, cc.xy(1, 3));
 
+                //---- exportVoyagerCheckBox ----
+                exportVoyagerCheckBox.setText("Always Export Voyager Information");
+                contentPanel.add(exportVoyagerCheckBox, cc.xy(1, 5));
+
                 //---- runIndexButton ----
                 runIndexButton.setText("Run Index");
                 runIndexButton.addActionListener(new ActionListener() {
@@ -132,11 +148,11 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         runIndexButtonActionPerformed();
                     }
                 });
-                contentPanel.add(runIndexButton, cc.xy(1, 5));
+                contentPanel.add(runIndexButton, cc.xy(1, 7));
 
                 //---- updateAllRecordsCheckBox ----
                 updateAllRecordsCheckBox.setText("Update All Records");
-                contentPanel.add(updateAllRecordsCheckBox, cc.xy(3, 5));
+                contentPanel.add(updateAllRecordsCheckBox, cc.xy(3, 7));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -185,6 +201,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
     private JPanel contentPanel;
     private JCheckBox useCacheRecordsCheckBox;
     private JCheckBox saveCacheToDBCheckBox;
+    private JCheckBox exportVoyagerCheckBox;
     private JButton runIndexButton;
     private JCheckBox updateAllRecordsCheckBox;
     private JPanel buttonBar;

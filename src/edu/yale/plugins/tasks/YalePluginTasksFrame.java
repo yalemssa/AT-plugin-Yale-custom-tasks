@@ -87,6 +87,9 @@ public class YalePluginTasksFrame extends JFrame {
                     return;
                 }
 
+                final boolean useCache = yalePluginTasks.getConfigDialog().getUseCacheRecords();
+                final boolean alwaysSaveCache = yalePluginTasks.getConfigDialog().getAlwaysSaveCache();
+
                 // disable the appropriate button
                 assignContainerButton.setEnabled(false);
 
@@ -99,11 +102,11 @@ public class YalePluginTasksFrame extends JFrame {
                         try {
                             if(boxLookupAndUpdate == null) {
                                 boxLookupAndUpdate = new BoxLookupAndUpdate();
-                                boxLookupAndUpdate.alwaysSaveCache = true;
+                                boxLookupAndUpdate.alwaysSaveCache = alwaysSaveCache;
                             }
 
                             //final Collection<BoxLookupReturnRecords> boxes = boxLookupAndUpdate.gatherContainersJDBC(record, monitor, true);
-                            final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(record, monitor, useCacheCheckBox.isSelected());
+                            final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(record, monitor, useCache);
 
                             monitor.close();
 
@@ -152,6 +155,10 @@ public class YalePluginTasksFrame extends JFrame {
                 final File outputFile = fileChooser.getSelectedFile();
                 final ResourcesDAO access = new ResourcesDAO();
 
+                final boolean useCache = yalePluginTasks.getConfigDialog().getUseCacheRecords();
+                final boolean alwaysSaveCache = yalePluginTasks.getConfigDialog().getAlwaysSaveCache();
+                final boolean alwaysExportVoyager = yalePluginTasks.getConfigDialog().getAlwaysExportVoyagerInformation();
+
                 Thread performer = new Thread(new Runnable() {
                     public void run() {
                         InfiniteProgressPanel monitor = ATProgressUtil.createModalProgressMonitor(YalePluginTasksFrame.this, 1000);
@@ -187,11 +194,19 @@ public class YalePluginTasksFrame extends JFrame {
 
                                 monitor.setTextLine("Exporting resource " + count + " of " + totalRecords + " - " + resource.getTitle(), 1);
 
-                                gatherer = new ContainerGatherer(resource, useCacheCheckBox.isSelected());
+                                gatherer = new ContainerGatherer(resource, useCache, alwaysSaveCache);
 
                                 ATContainerCollection containerCollection = gatherer.gatherContainers(monitor);
 
                                 for (ATContainer container: containerCollection.getContainers()) {
+                                    // checks to see if the voyager information for this container has already
+                                    // been exported
+                                    if(gatherer.isExportedToVoyager(container) && !alwaysExportVoyager) {
+                                        String message = "Container: " + container.getContainerLabel() + " already exported ...";
+                                        monitor.setTextLine(message, 3);
+                                        continue;
+                                    }
+
                                     accessionNumber = container.getAccessionNumber();
 
                                     writer.println(resource.getResourceIdentifier2() + "," +
@@ -201,6 +216,9 @@ public class YalePluginTasksFrame extends JFrame {
                                             container.getContainerLabel() + "," +
                                             "," + //just a dummy for box number extension
                                             container.getBarcode() + ",");
+
+                                    // save the fact that this record was already exported
+                                    gatherer.updateExportedToVoyager(container, true);
                                 }
 
                                 // close the long session, otherwise memory would quickly run out
@@ -221,6 +239,8 @@ public class YalePluginTasksFrame extends JFrame {
                             new ErrorDialog("Error looking up accession date", e).showDialog();
                         } catch (SQLException e) {
                             new ErrorDialog("Error resetting the long session", e).showDialog();
+                        } catch (Exception e) {
+                            new ErrorDialog("Error updating export to voyager boolean", e).showDialog();
                         } finally {
                             writer.close();
                             monitor.close();
@@ -249,10 +269,8 @@ public class YalePluginTasksFrame extends JFrame {
         dialogPane = new JPanel();
         contentPanel = new JPanel();
         assignContainerButton = new JButton();
-        useCacheCheckBox = new JCheckBox();
-        saveCacheToDBCheckBox = new JCheckBox();
-        boxSearchButton = new JButton();
         voyagerExportButton = new JButton();
+        boxSearchButton = new JButton();
         indexButton = new JButton();
         buttonBar = new JPanel();
         showConfigDialogButton = new JButton();
@@ -276,13 +294,11 @@ public class YalePluginTasksFrame extends JFrame {
                     new ColumnSpec[] {
                         FormFactory.DEFAULT_COLSPEC,
                         FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
-                        FormFactory.DEFAULT_COLSPEC,
+                        new ColumnSpec(ColumnSpec.FILL, Sizes.DEFAULT, FormSpec.DEFAULT_GROW),
                         FormFactory.LABEL_COMPONENT_GAP_COLSPEC,
                         FormFactory.DEFAULT_COLSPEC
                     },
                     new RowSpec[] {
-                        FormFactory.DEFAULT_ROWSPEC,
-                        FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
@@ -299,20 +315,6 @@ public class YalePluginTasksFrame extends JFrame {
                 });
                 contentPanel.add(assignContainerButton, cc.xy(1, 1));
 
-                //---- useCacheCheckBox ----
-                useCacheCheckBox.setText("Use Database Cache");
-                useCacheCheckBox.setSelected(true);
-                contentPanel.add(useCacheCheckBox, cc.xy(3, 1));
-
-                //---- saveCacheToDBCheckBox ----
-                saveCacheToDBCheckBox.setText("Always Save Cache");
-                saveCacheToDBCheckBox.setSelected(true);
-                contentPanel.add(saveCacheToDBCheckBox, cc.xy(5, 1));
-
-                //---- boxSearchButton ----
-                boxSearchButton.setText("Box Search");
-                contentPanel.add(boxSearchButton, cc.xy(1, 3));
-
                 //---- voyagerExportButton ----
                 voyagerExportButton.setText("Export Voyager Info");
                 voyagerExportButton.addActionListener(new ActionListener() {
@@ -320,7 +322,11 @@ public class YalePluginTasksFrame extends JFrame {
                         voyagerExportButtonActionPerformed();
                     }
                 });
-                contentPanel.add(voyagerExportButton, cc.xy(1, 5));
+                contentPanel.add(voyagerExportButton, cc.xy(5, 1));
+
+                //---- boxSearchButton ----
+                boxSearchButton.setText("Box Search");
+                contentPanel.add(boxSearchButton, cc.xy(1, 3));
 
                 //---- indexButton ----
                 indexButton.setText("Index Records");
@@ -329,7 +335,7 @@ public class YalePluginTasksFrame extends JFrame {
                         indexButtonActionPerformed();
                     }
                 });
-                contentPanel.add(indexButton, cc.xy(1, 7));
+                contentPanel.add(indexButton, cc.xy(5, 3));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -387,10 +393,8 @@ public class YalePluginTasksFrame extends JFrame {
     private JPanel dialogPane;
     private JPanel contentPanel;
     private JButton assignContainerButton;
-    private JCheckBox useCacheCheckBox;
-    private JCheckBox saveCacheToDBCheckBox;
-    private JButton boxSearchButton;
     private JButton voyagerExportButton;
+    private JButton boxSearchButton;
     private JButton indexButton;
     private JPanel buttonBar;
     private JButton showConfigDialogButton;

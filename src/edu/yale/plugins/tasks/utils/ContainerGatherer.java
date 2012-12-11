@@ -33,26 +33,41 @@ import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.criterion.Expression;
 
-import javax.swing.tree.FixedHeightLayoutCache;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Date;
-import java.text.SimpleDateFormat;
 
 public class ContainerGatherer {
     // this is used to force update of all record even if they are the same
-    public boolean updateAllRecords = false;
+    public boolean alwaysSaveCache = false;
 
 	private Resources resource;
     private boolean useCache;
 	private String voyagerHoldingsKey = null;
 	private HashMap<String, Date> accessionDates;
 	private DomainAccessObject accessionDAO;
+    private DomainAccessObject instanceDAO;
 
-	public ContainerGatherer(Resources resource, boolean useCache) {
+	public ContainerGatherer(Resources resource, boolean useCache, boolean alwaysSaveCache) {
 		this.resource = resource;
         this.useCache = useCache;
+        this.alwaysSaveCache = alwaysSaveCache;
+
+        // initiate the domain access objects
+        try {
+            initDAO();
+        } catch (PersistenceException e) {
+            e.printStackTrace();
+        }
 	}
+
+    /**
+     * init the domain access objects for getting instances
+     */
+    public void initDAO() throws PersistenceException {
+        instanceDAO = DomainAccessObjectFactory.getInstance().getDomainAccessObject(ArchDescriptionAnalogInstances.class);
+        instanceDAO.getLongSession();
+    }
 
 	public ATContainerCollection gatherContainers(InfiniteProgressPanel monitor) throws PersistenceException, LookupException {
         // if there is a cache set, use that
@@ -98,7 +113,7 @@ public class ContainerGatherer {
                 resource.getIdentifier(), resource.getVersion());
 
         // if we using cache then store this to the database
-        if(useCache) {
+        if(useCache || alwaysSaveCache) {
             try {
                 PluginDataUtils.saveATContainerRecord(containerCollection);
             } catch (Exception e) {
@@ -109,6 +124,15 @@ public class ContainerGatherer {
 		return containerCollection;
 	}
 
+    /**
+     * Find all instances that belong to this container by making recurive calls
+     *
+     * @param monitor
+     * @param containers
+     * @param component
+     * @param accessionNumber
+     * @param depth
+     */
 	private void gatherContainers(InfiniteProgressPanel monitor,
 								  HashMap<String, ATContainer> containers,
 								  ResourcesComponents component,
@@ -128,16 +152,25 @@ public class ContainerGatherer {
 			instanceLabel = instance.getTopLevelLabel();
 			key = accessionNumber + instanceLabel;
 			System.out.println("Key: " + key);
-			if (!containers.containsKey(key)) {
-				containers.put(key, new ATContainer(instanceLabel, accessionNumber, instance.getBarcode()));
+
+            ATContainer atContainer = null;
+
+            if (!containers.containsKey(key)) {
+                atContainer = new ATContainer(instanceLabel, accessionNumber, instance.getBarcode());
+				containers.put(key, atContainer);
+
 				if (voyagerHoldingsKey == null && instance.getUserDefinedString1() != null) {
 					String[] parts = instance.getUserDefinedString1().split("_");
                     if(parts.length == 2) {
 					    voyagerHoldingsKey = parts[1];
                     }
 				}
-			}
+			} else {
+                atContainer = containers.get(key);
+            }
 
+            // store the instance id
+            atContainer.addInstanceId(instance.getIdentifier());
 		}
 
 		if (component.isHasChild()) {
@@ -145,7 +178,6 @@ public class ContainerGatherer {
 				gatherContainers(monitor, containers, childComponent, accessionNumber, depth++);
 			}
 		}
-
 	}
 
 	private Date lookupAccessionDate(String accessionNumber) {
@@ -223,10 +255,57 @@ public class ContainerGatherer {
 	}
 
     private ATContainerCollection loadATContainerRecordFromDatabase(Long resourceId) {
-        if(!updateAllRecords) {
+        if(!alwaysSaveCache) {
             return PluginDataUtils.getATContainerRecord(resourceId);
         } else {
             return null;
+        }
+    }
+
+    /**
+     * Method to update the code for the list of instances
+     *
+     * @param container whose instances need to be updated
+     * @param exported Whether the container was exported
+     */
+    public void updateExportedToVoyager(ATContainer container, boolean exported) throws Exception {
+        String[] ids = container.getInstanceIds().split(",\\s*");
+
+        // for each id get the analog instance object from the database and set the export
+        // to voyager to be true
+        for (String id : ids) {
+            Long lid = new Long(id);
+
+            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+
+            instance.setUserDefinedBoolean2(exported);
+
+            instanceDAO.updateLongSession(instance, false);
+        }
+    }
+
+    /**
+     * Check to see if this has been exported by just checking the first container, since the
+     * rest of the instances in the container should be the same
+     *
+     * @param container
+     * @return
+     */
+    public boolean isExportedToVoyager(ATContainer container) {
+        try {
+            String[] ids = container.getInstanceIds().split(",\\s*");
+            Long lid = new Long(ids[0]);
+
+            ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+            Boolean export = instance.getUserDefinedBoolean2();
+            if(export != null) {
+                return export;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
     }
 }

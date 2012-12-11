@@ -10,8 +10,8 @@ new FormModel {
 				name: "dialogPane"
 				"border": sfield com.jgoodies.forms.factories.Borders DIALOG_BORDER
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
-					"$columnSpecs": "default, labelcompgap, default, labelcompgap, default"
-					"$rowSpecs": "default, linegap, default, linegap, default, linegap, default"
+					"$columnSpecs": "default, labelcompgap, default:grow, labelcompgap, default"
+					"$rowSpecs": "default, linegap, default, linegap, default"
 				} ) {
 					name: "contentPanel"
 					add( new FormComponent( "javax.swing.JButton" ) {
@@ -22,20 +22,12 @@ new FormModel {
 						"gridX": 1
 						"gridY": 1
 					} )
-					add( new FormComponent( "javax.swing.JCheckBox" ) {
-						name: "useCacheCheckBox"
-						"text": "Use Database Cache"
-						"selected": true
-					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
-						"gridX": 3
-					} )
-					add( new FormComponent( "javax.swing.JCheckBox" ) {
-						name: "saveCacheToDBCheckBox"
-						"text": "Always Save Cache"
-						"selected": true
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "voyagerExportButton"
+						"text": "Export Voyager Info"
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "voyagerExportButtonActionPerformed", false ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 5
-						"gridY": 1
 					} )
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "boxSearchButton"
@@ -45,19 +37,12 @@ new FormModel {
 						"gridY": 3
 					} )
 					add( new FormComponent( "javax.swing.JButton" ) {
-						name: "voyagerExportButton"
-						"text": "Export Voyager Info"
-						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "voyagerExportButtonActionPerformed", false ) )
-					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
-						"gridY": 5
-					} )
-					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "indexButton"
 						"text": "Index Records"
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "indexButtonActionPerformed", false ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
-						"gridX": 1
-						"gridY": 7
+						"gridX": 5
+						"gridY": 3
 					} )
 				}, new FormLayoutConstraints( class java.lang.String ) {
 					"value": "Center"

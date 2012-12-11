@@ -20,13 +20,16 @@
 
 package edu.yale.plugins.tasks.model;
 
+import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
+
 public class ATContainer {
 
 	private String containerLabel;
 	private String accessionNumber;
 	private String barcode;
+    private String instanceIds; // id of all instances that are part of this container
 
-	public ATContainer() {}
+    public ATContainer() {}
 
     public ATContainer(String containerLabel, String accessionNumber, String barcode) {
 		this.containerLabel = containerLabel;
@@ -57,4 +60,16 @@ public class ATContainer {
 	public void setBarcode(String barcode) {
 		this.barcode = barcode;
 	}
+
+    public String getInstanceIds() {
+        return instanceIds;
+    }
+
+    public void addInstanceId(Long instanceId) {
+        if (this.instanceIds == null) {
+            this.instanceIds = instanceId.toString();
+        } else {
+            this.instanceIds += ", " + instanceId;
+        }
+    }
 }
