@@ -42,7 +42,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
      * @return
      */
     public boolean getUseCacheRecords() {
-        return useCacheRecordsCheckBox.isEnabled();
+        return useCacheRecordsCheckBox.isSelected();
     }
 
     /**
@@ -66,7 +66,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
 
     private void okButtonActionPerformed() {
         // TODO save setting to the database
-
+        deleteCountLabel.setText("0 records deleted");
         setVisible(false);
     }
 
@@ -81,7 +81,32 @@ public class YalePluginTasksConfigDialog extends JDialog {
      * Cancel button pressed so just set the window invisible
      */
     private void cancelButtonActionPerformed() {
+        deleteCountLabel.setText("0 records deleted");
         setVisible(false);
+    }
+
+    /**
+     * Method to delete the index records in from the database by making sql call
+     */
+    private void deleteIndexButtonActionPerformed() {
+        try {
+            String message = "Are you sure you want to completely delete the indexed records?\n" +
+                    "This action cannot be undone.";
+
+            int n = JOptionPane.showConfirmDialog(
+                    this,
+                    message,
+                    "Confirm Delete",
+                    JOptionPane.YES_NO_OPTION);
+
+            // if user selected yes proceed with delete
+            if(n == JOptionPane.YES_OPTION) {
+                int count = PluginDataUtils.deleteAllIndexRecords();
+                deleteCountLabel.setText(count + " records deleted");
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void initComponents() {
@@ -92,6 +117,8 @@ public class YalePluginTasksConfigDialog extends JDialog {
         useCacheRecordsCheckBox = new JCheckBox();
         saveCacheToDBCheckBox = new JCheckBox();
         exportVoyagerCheckBox = new JCheckBox();
+        deleteIndexButton = new JButton();
+        deleteCountLabel = new JLabel();
         runIndexButton = new JButton();
         updateAllRecordsCheckBox = new JCheckBox();
         buttonBar = new JPanel();
@@ -124,6 +151,8 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC
                     }));
 
@@ -141,6 +170,19 @@ public class YalePluginTasksConfigDialog extends JDialog {
                 exportVoyagerCheckBox.setText("Always Export Voyager Information");
                 contentPanel.add(exportVoyagerCheckBox, cc.xy(1, 5));
 
+                //---- deleteIndexButton ----
+                deleteIndexButton.setText("Delete All Index Records");
+                deleteIndexButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        deleteIndexButtonActionPerformed();
+                    }
+                });
+                contentPanel.add(deleteIndexButton, cc.xy(1, 7));
+
+                //---- deleteCountLabel ----
+                deleteCountLabel.setText("O records deleted");
+                contentPanel.add(deleteCountLabel, cc.xy(3, 7));
+
                 //---- runIndexButton ----
                 runIndexButton.setText("Run Index");
                 runIndexButton.addActionListener(new ActionListener() {
@@ -148,11 +190,11 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         runIndexButtonActionPerformed();
                     }
                 });
-                contentPanel.add(runIndexButton, cc.xy(1, 7));
+                contentPanel.add(runIndexButton, cc.xy(1, 9));
 
                 //---- updateAllRecordsCheckBox ----
                 updateAllRecordsCheckBox.setText("Update All Records");
-                contentPanel.add(updateAllRecordsCheckBox, cc.xy(3, 7));
+                contentPanel.add(updateAllRecordsCheckBox, cc.xy(3, 9));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -202,6 +244,8 @@ public class YalePluginTasksConfigDialog extends JDialog {
     private JCheckBox useCacheRecordsCheckBox;
     private JCheckBox saveCacheToDBCheckBox;
     private JCheckBox exportVoyagerCheckBox;
+    private JButton deleteIndexButton;
+    private JLabel deleteCountLabel;
     private JButton runIndexButton;
     private JCheckBox updateAllRecordsCheckBox;
     private JPanel buttonBar;

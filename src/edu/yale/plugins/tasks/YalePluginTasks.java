@@ -218,7 +218,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         Runnable doWorkRunnable = new Runnable() {
                             public void run() {
                                 YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(mainFrame);
-                                locationAssignmentDialog.setSize(900, 700);
+                                locationAssignmentDialog.setSize(900, 800);
                                 locationAssignmentDialog.assignContainerListValues(boxes);
                                 locationAssignmentDialog.setBoxLookupAndUpdate(boxLookupAndUpdate);
                                 locationAssignmentDialog.setVisible(true);
@@ -293,7 +293,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                                                 containerCollection.getVoyagerHoldingsKey() + "," +
                                                 accessionNumber + "," +
                                                 containerCollection.lookupAccessionDate(accessionNumber) + "," +
-                                                container.getContainerLabel() + "," +
+                                                container.getContainerLabel().replaceAll(",","") + "," +
                                                 "," + //just a dummy for box number extension
                                                 container.getBarcode() + ",");
 
@@ -429,6 +429,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                         // index the boxes
                         boxLookupAndUpdate = new BoxLookupAndUpdate();
                         boxLookupAndUpdate.updateAllRecords = updateAllRecords;
+                        boxLookupAndUpdate.setVoyagerInfo = false;
                         BoxLookupReturnRecordsCollection boxCollection = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, true);
 
                         // close the long session, otherwise memory would quickly run out

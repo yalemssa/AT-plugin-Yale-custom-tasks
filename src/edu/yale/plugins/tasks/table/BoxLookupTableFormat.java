@@ -28,7 +28,7 @@ import java.util.Comparator;
  */
 public class BoxLookupTableFormat implements WritableTableFormat<BoxLookupReturnRecords>, AdvancedTableFormat<BoxLookupReturnRecords> {
     // The default amount of columns
-    private int columnCount = 8;
+    private int columnCount = 10;
     private boolean editable = true;
 
     /**
@@ -44,7 +44,7 @@ public class BoxLookupTableFormat implements WritableTableFormat<BoxLookupReturn
      */
     public BoxLookupTableFormat(boolean editable) {
         this.editable = false;
-        this.columnCount = 7;
+        this.columnCount = 9;
     }
 
     public int getColumnCount() {
@@ -59,7 +59,9 @@ public class BoxLookupTableFormat implements WritableTableFormat<BoxLookupReturn
         else if (column == 4) return "Box";
         else if (column == 5) return "Container Type";
         else if (column == 6) return "Barcode";
-        else if (column == 7) return "Restriction";
+        else if (column == 7) return "Voyager Info";
+        else if (column == 8) return "Exported";
+        else if (column == 9) return "Restriction";
 
         throw new IllegalStateException();
     }
@@ -72,7 +74,9 @@ public class BoxLookupTableFormat implements WritableTableFormat<BoxLookupReturn
         else if (column == 4) return boxLookupReturnRecords.getBoxLabel();
         else if (column == 5) return boxLookupReturnRecords.getContainerType();
         else if (column == 6) return boxLookupReturnRecords.getBarcode();
-        else if (column == 7) return boxLookupReturnRecords.isRestriction();
+        else if (column == 7) return boxLookupReturnRecords.getVoyagerInfo();
+        else if (column == 8) return boxLookupReturnRecords.isExportedToVoyager();
+        else if (column == 9) return boxLookupReturnRecords.isRestriction();
 
         throw new IllegalStateException();
     }
@@ -99,7 +103,9 @@ public class BoxLookupTableFormat implements WritableTableFormat<BoxLookupReturn
         else if (column == 4) return String.class;
         else if (column == 5) return String.class;
         else if (column == 6) return String.class;
-        else if (column == 7) return Boolean.class;
+        else if (column == 7) return String.class;
+        else if (column == 8) return Boolean.class;
+        else if (column == 9) return Boolean.class;
 
         throw new IllegalStateException();
     }

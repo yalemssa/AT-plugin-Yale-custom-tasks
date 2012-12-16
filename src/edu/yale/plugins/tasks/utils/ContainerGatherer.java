@@ -115,6 +115,7 @@ public class ContainerGatherer {
         // if we using cache then store this to the database
         if(useCache || alwaysSaveCache) {
             try {
+                containerCollection.setResourceVersion(resourceVersion);
                 PluginDataUtils.saveATContainerRecord(containerCollection);
             } catch (Exception e) {
                 e.printStackTrace();

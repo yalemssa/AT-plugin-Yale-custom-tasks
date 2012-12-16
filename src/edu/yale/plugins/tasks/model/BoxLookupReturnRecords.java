@@ -31,12 +31,12 @@ public class BoxLookupReturnRecords implements Comparable{
 	private String boxLabel;
 	private String containerType;
     private String instanceIds;
+    private String voyagerInfo;
+    private Boolean exportedToVoyager;
 
     private String topLevelContainerName; // used for sorting
 
     private Long locationId;
-
-    private int resourceRecordVersion = 0; // used to make indexing faster
 
     public BoxLookupReturnRecords() {}
 
@@ -128,6 +128,22 @@ public class BoxLookupReturnRecords implements Comparable{
 	public void setContainerType(String containerType) {
 		this.containerType = containerType;
 	}
+
+    public String getVoyagerInfo() {
+        return voyagerInfo;
+    }
+
+    public void setVoyagerInfo(String voyagerInfo) {
+        this.voyagerInfo = voyagerInfo;
+    }
+
+    public Boolean isExportedToVoyager() {
+        return exportedToVoyager;
+    }
+
+    public void setExportedToVoyager(Boolean exportedToVoyager) {
+        this.exportedToVoyager = exportedToVoyager;
+    }
 
     public String getInstanceIds() {
         return instanceIds;

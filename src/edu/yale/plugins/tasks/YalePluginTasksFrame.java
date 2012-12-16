@@ -18,6 +18,7 @@ import edu.yale.plugins.tasks.dbdialog.RemoteDBConnectDialog;
 import edu.yale.plugins.tasks.model.ATContainer;
 import edu.yale.plugins.tasks.model.ATContainerCollection;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
+import edu.yale.plugins.tasks.search.BoxLookupReturnScreen;
 import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
 import edu.yale.plugins.tasks.utils.ContainerGatherer;
 import org.archiviststoolkit.dialog.ErrorDialog;
@@ -114,7 +115,7 @@ public class YalePluginTasksFrame extends JFrame {
                             Runnable doWorkRunnable = new Runnable() {
                                 public void run() {
                                     YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(YalePluginTasksFrame.this);
-                                    locationAssignmentDialog.setSize(900, 700);
+                                    locationAssignmentDialog.setSize(900, 800);
                                     locationAssignmentDialog.assignContainerListValues(boxes);
                                     locationAssignmentDialog.setBoxLookupAndUpdate(boxLookupAndUpdate);
                                     locationAssignmentDialog.setVisible(true);
@@ -213,7 +214,7 @@ public class YalePluginTasksFrame extends JFrame {
                                             containerCollection.getVoyagerHoldingsKey() + "," +
                                             accessionNumber + "," +
                                             containerCollection.lookupAccessionDate(accessionNumber) + "," +
-                                            container.getContainerLabel() + "," +
+                                            container.getContainerLabel().replaceAll(",","") + "," +
                                             "," + //just a dummy for box number extension
                                             container.getBarcode() + ",");
 
@@ -261,6 +262,17 @@ public class YalePluginTasksFrame extends JFrame {
 
     private void showConfigDialogButtonActionPerformed() {
         yalePluginTasks.showConfigDialog();
+    }
+
+    private void boxSearchButtonActionPerformed() {
+        try {
+            BoxLookupReturnScreen returnScreen = new BoxLookupReturnScreen(this);
+            returnScreen.showDialog();
+        } catch (ClassNotFoundException e) {
+            new ErrorDialog("", e).showDialog();
+        } catch (SQLException e) {
+            new ErrorDialog("", e).showDialog();
+        }
     }
 
     private void initComponents() {
@@ -326,6 +338,11 @@ public class YalePluginTasksFrame extends JFrame {
 
                 //---- boxSearchButton ----
                 boxSearchButton.setText("Box Search");
+                boxSearchButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        boxSearchButtonActionPerformed();
+                    }
+                });
                 contentPanel.add(boxSearchButton, cc.xy(1, 3));
 
                 //---- indexButton ----

@@ -5,9 +5,14 @@ import edu.yale.plugins.tasks.YalePluginTasks;
 import edu.yale.plugins.tasks.model.ATContainerCollection;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecordsCollection;
 import edu.yale.plugins.tasks.model.ConfigData;
+import org.archiviststoolkit.hibernate.SessionFactory;
 import org.archiviststoolkit.model.ATPluginData;
 import org.archiviststoolkit.mydomain.DomainAccessObject;
 import org.archiviststoolkit.mydomain.DomainAccessObjectFactory;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.util.Collection;
 
 /**
@@ -278,6 +283,34 @@ public class PluginDataUtils {
         XStream xstream = new XStream();
         xstream.setClassLoader(PluginDataUtils.class.getClassLoader());
         return xstream.fromXML(pluginData.getDataString());
+    }
+
+    /**
+     * Method to delete all the index records by making direct JDBC call
+     */
+    public static int deleteAllIndexRecords() throws Exception {
+        Class.forName(SessionFactory.getDriverClass());
+        Connection con = DriverManager.getConnection(SessionFactory.getDatabaseUrl(),
+                SessionFactory.getUserName(),
+                SessionFactory.getPassword());
+
+        String sqlString = "DELETE FROM ATPluginData\n" +
+                "WHERE dataType = ?";
+        PreparedStatement indexDelete = con.prepareStatement(sqlString);
+
+        int count = 0;
+
+        // delete the box records
+        indexDelete.setString(1, YalePluginTasks.BOX_RECORD_DATA_NAME);
+        count = indexDelete.executeUpdate();
+
+        // delete the voyager info index records
+        indexDelete.setString(1, YalePluginTasks.AT_CONTAINER_DATA_NAME);
+        count += indexDelete.executeUpdate();
+
+        con.close();
+
+        return count;
     }
 
 }

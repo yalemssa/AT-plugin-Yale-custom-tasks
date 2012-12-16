@@ -225,7 +225,6 @@ public class YaleLocationAssignmentResources extends JDialog {
                                 exportedToVoyager
                         );
 
-                        //TODO need to update all values in the boxRecord 11/3/2012
                         //update the box record values now
                         if (barcode.length() != 0) {
                             boxRecord.setBarcode(barcode);
@@ -233,6 +232,10 @@ public class YaleLocationAssignmentResources extends JDialog {
 
                         if(userDefinedString2.length() != 0) {
                             boxRecord.setContainerType(userDefinedString2);
+                        }
+
+                        if(changeExportedToVoyager) {
+                            boxRecord.setExportedToVoyager(exportedToVoyager);
                         }
 
                         if(changeRestriction) {
@@ -334,6 +337,9 @@ public class YaleLocationAssignmentResources extends JDialog {
                             // need to show a progress dialog here and call update voyager info in thread
                             instances += boxLookupAndUpdate.updateVoyagerInformation(boxRecord.getInstanceIds(), bibHolding);
 
+                            // update the box record voyager information
+                            boxRecord.setVoyagerInfo(bibHolding);
+
                             // update the progress bar
                             updateProgressBar.setValue(instances);
                         } catch (Exception e1) {
@@ -344,10 +350,13 @@ public class YaleLocationAssignmentResources extends JDialog {
 
                     System.out.println("Total # of Instances Updated: " + totalInstances);
 
-                    // re-enable the ui buttons
+                    // re-enable the ui buttons and update other UI stuff
                     setUIButtonsEnable(true);
                     updateProgressBar.setStringPainted(false);
                     updateProgressBar.setValue(0);
+
+                    containerLookupTable.invalidate();
+                    containerLookupTable.repaint();
                 }
             });
 

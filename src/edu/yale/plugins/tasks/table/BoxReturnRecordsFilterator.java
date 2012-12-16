@@ -27,6 +27,7 @@ public class BoxReturnRecordsFilterator implements TextFilterator {
         list.add(boxLookupReturnRecord.getLocation());
         list.add(boxLookupReturnRecord.getBoxLabel());
         list.add(boxLookupReturnRecord.getContainerType());
+        list.add(boxLookupReturnRecord.getVoyagerInfo());
         list.add(boxLookupReturnRecord.getBarcode());
     }
 }

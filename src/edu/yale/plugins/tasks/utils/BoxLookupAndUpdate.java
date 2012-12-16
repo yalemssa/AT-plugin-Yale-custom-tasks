@@ -46,6 +46,9 @@ public class BoxLookupAndUpdate {
     // this is used to force update of all record even if they are the same
     public boolean updateAllRecords = false;
 
+    // this is used to avoid having to update the voyager information when we just running index
+    public boolean setVoyagerInfo = true;
+
     private TreeMap<String, SeriesInfo> seriesInfo = new TreeMap<String, SeriesInfo>();
 
     private HashMap<Long, String> componentTitleLookup = new HashMap<Long, String>();
@@ -278,6 +281,7 @@ public class BoxLookupAndUpdate {
         if (useCache && boxC != null) {
             // now check to see if the version matches
             if(resourceVersion.equals(boxC.getResourceVersion())) {
+                setVoyagerInformation(boxC);
                 return boxC;
             } else {
                 System.out.println("Resource version different, regenerating box lookup collection");
@@ -439,8 +443,12 @@ public class BoxLookupAndUpdate {
 
             // store a copy of this for future access on the database
             if (useCache || alwaysSaveCache) {
+                boxCollection.setResourceVersion(resourceVersion);
                 PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
             }
+
+            // set the voyager information for the containers now
+            setVoyagerInformation(boxCollection);
 
             System.out.println("Total Instances: " + instanceCount);
             System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
@@ -451,6 +459,33 @@ public class BoxLookupAndUpdate {
         }
 
         return null;
+    }
+
+    /**
+     * Method to set the voyager information for the collection record. This is needed to avoid
+     * having to update all the voyager information everytime the export voyager information button
+     * is used
+     *
+     * @param boxCollection
+     */
+    private void setVoyagerInformation(BoxLookupReturnRecordsCollection boxCollection) {
+        if(!setVoyagerInfo) return;
+
+        for (BoxLookupReturnRecords container : boxCollection.getContainers()) {
+            String[] ids = container.getInstanceIds().split(",\\s*");
+            Long lid = new Long(ids[0]);
+
+            try {
+                ArchDescriptionAnalogInstances instance = (ArchDescriptionAnalogInstances) instanceDAO.findByPrimaryKeyLongSession(lid);
+                String voyagerInfo = instance.getUserDefinedString1();
+                Boolean exported = instance.getUserDefinedBoolean2();
+
+                container.setVoyagerInfo(voyagerInfo);
+                container.setExportedToVoyager(exported);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -926,7 +961,6 @@ public class BoxLookupAndUpdate {
             this.seriesTitle = seriesTitle;
         }
 
-
         public String getUniqueId() {
             return uniqueId;
         }
@@ -1002,5 +1036,4 @@ public class BoxLookupAndUpdate {
             this.hasChild = hasChild;
         }
     }
-
 }

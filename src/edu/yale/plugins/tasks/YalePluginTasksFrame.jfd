@@ -32,6 +32,7 @@ new FormModel {
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "boxSearchButton"
 						"text": "Box Search"
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "boxSearchButtonActionPerformed", false ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 1
 						"gridY": 3
