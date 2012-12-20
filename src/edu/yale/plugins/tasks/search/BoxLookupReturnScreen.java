@@ -24,6 +24,8 @@ import java.util.Collection;
 import java.sql.SQLException;
 import javax.swing.*;
 
+import ca.odell.glazedlists.FilterList;
+import ca.odell.glazedlists.swing.TextComponentMatcherEditor;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 import ca.odell.glazedlists.EventList;
@@ -31,6 +33,7 @@ import ca.odell.glazedlists.BasicEventList;
 import ca.odell.glazedlists.SortedList;
 import ca.odell.glazedlists.swing.EventTableModel;
 import ca.odell.glazedlists.swing.TableComparatorChooser;
+import edu.yale.plugins.tasks.table.BoxReturnRecordsFilterator;
 import edu.yale.plugins.tasks.table.YaleAlternatingRowColorTable;
 import edu.yale.plugins.tasks.model.BoxLookupReturnRecords;
 import edu.yale.plugins.tasks.table.BoxLookupTableFormat;
@@ -323,17 +326,11 @@ public class BoxLookupReturnScreen extends ATBasicDialog {
 	}
 
 	private YaleAlternatingRowColorTable createReturnTable() {
-
 		SortedList<BoxLookupReturnRecords> sortedResults = new SortedList<BoxLookupReturnRecords>(resultsEventList);
-
-		EventTableModel<BoxLookupReturnRecords> resultsTableModel = new EventTableModel<BoxLookupReturnRecords>(sortedResults, new BoxLookupTableFormat());
+        FilterList filterList = new FilterList(sortedResults, new TextComponentMatcherEditor(containerFilterTextField, new BoxReturnRecordsFilterator()));
+		EventTableModel<BoxLookupReturnRecords> resultsTableModel = new EventTableModel<BoxLookupReturnRecords>(filterList, new BoxLookupTableFormat());
 		YaleAlternatingRowColorTable returnTable = new YaleAlternatingRowColorTable(resultsTableModel, sortedResults);
 		TableComparatorChooser tableSorter = TableComparatorChooser.install(returnTable, sortedResults, TableComparatorChooser.MULTIPLE_COLUMN_MOUSE);
-//		returnTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-//		TableColumn col = returnTable.getColumnModel().getColumn(5);
-//		int width = 150;
-//		col.setPreferredWidth(width);
-// 		returnTable.setPreferredSize(new Dimension(500,400));
 
 		return returnTable;  //To change body of created methods use File | Settings | File Templates.
 	}

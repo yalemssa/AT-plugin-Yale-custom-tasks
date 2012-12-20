@@ -224,26 +224,36 @@ public class BoxLookupAndUpdate {
                                     instances.getString("instanceType"));
                             componentId = instances.getLong("resourceComponentId");
                             componentTitle = componentTitleLookup.get(componentId);
+
                             if (!containers.containsKey(containerLabel)) {
                                 containers.put(containerLabel, new ContainerInfo(containerLabel,
                                         instances.getString("barcode"),
                                         instances.getBoolean("userDefinedBoolean1"),
                                         getLocationString(instances.getLong("locationId")),
                                         componentTitle,
-                                        instances.getString("userDefinedString2")));
+                                        instances.getString("userDefinedString2"),
+                                        instances.getString("userDefinedString1"),
+                                        instances.getBoolean("userDefinedBoolean2")));
                             }
                         }
                     }
                     logMessage += "\n\n";
                     for (ContainerInfo container : containers.values()) {
-                        results.add(new BoxLookupReturnRecords(createPaddedResourceIdentifier(resourceType, resourceId2),
+                        BoxLookupReturnRecords boxLookupReturnRecord = new BoxLookupReturnRecords(createPaddedResourceIdentifier(resourceType, resourceId2),
                                 series.getUniqueId(),
                                 container.getComponentTitle(),
                                 container.getLocation(),
                                 container.getBarcode(),
                                 container.isRestriction(),
                                 container.getLabel(),
-                                container.getContainerType()));
+                                container.getContainerType());
+
+                        // add the voyager information
+                        boxLookupReturnRecord.setVoyagerInfo(container.getVoyagerInfo());
+                        boxLookupReturnRecord.setExportedToVoyager(container.getExportedToVoyager());
+
+                        results.add(boxLookupReturnRecord);
+
                         logMessage += "\nAccession Number: " + series.getUniqueId() +
                                 " Series Title: " + series.getSeriesTitle() +
                                 " Container: " + container.getLabel() +
@@ -251,6 +261,9 @@ public class BoxLookupAndUpdate {
                                 " Restrictions: " + container.isRestriction();
 
                     }
+
+
+
                     returnSrceen.updateResultList(results);
                     returnSrceen.setElapsedTimeText(MyTimer.toString(timer.elapsedTimeMillis()));
                 }
@@ -499,71 +512,6 @@ public class BoxLookupAndUpdate {
         } else {
             return null;
         }
-    }
-
-    /**
-     * Main entry point into doing a recursion
-     *
-     * @param record
-     * @param monitor
-     * @param useCache
-     * @return
-     */
-    public BoxLookupReturnRecordsCollection gatherContainers(Resources record, InfiniteProgressPanel monitor, boolean useCache) {
-        TreeMap<String, BoxLookupReturnRecords> containers =
-                new TreeMap<String, BoxLookupReturnRecords>();
-
-        // if there is a cache set, use that
-        Long resourceId = record.getIdentifier();
-        Long resourceVersion = record.getVersion();
-
-        // try loading the box lookup return record
-        BoxLookupReturnRecordsCollection boxC = loadBoxLookupReturnRecordFromDatabase(resourceId);
-
-        // see if to just return the cache result
-        if (useCache && boxC != null) {
-            // now check to see if the version matches
-            if(resourceVersion.equals(boxC.getResourceVersion())) {
-                return boxC;
-            } else {
-                System.out.println("Resource version different, regenerating box lookup collection");
-            }
-        }
-
-        monitor.setTextLine("Resource: " + record.getTitle(), 2);
-
-        // reset the instance count and begin the timer
-        instanceCount = 0;
-        MyTimer timer = new MyTimer();
-        timer.reset();
-
-        try {
-            for (ResourcesComponents component : record.getResourcesComponents()) {
-                gatherContainers(monitor, record.getResourceIdentifier(), component, containers, 3);
-            }
-        } catch (TransientObjectException e) {
-            monitor.close();
-            new ErrorDialog("Resource must be saved", e).showDialog();
-        }
-
-        ArrayList<BoxLookupReturnRecords> boxLookupReturnRecords = new ArrayList<BoxLookupReturnRecords>(containers.values());
-        BoxLookupReturnRecordsCollection boxCollection = new BoxLookupReturnRecordsCollection(boxLookupReturnRecords,
-                resourceId, resourceVersion, instanceCount);
-
-        //store a copy of this for future access
-        if (useCache || alwaysSaveCache) {
-            try {
-                PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
-            } catch (Exception e) {
-                new ErrorDialog("", e).showDialog();
-            }
-        }
-
-        // print out the time it took for the search process
-        System.out.println("Total Instances: " + instanceCount);
-        System.out.println("Total Time: " + MyTimer.toString(timer.elapsedTimeMillis()));
-
-        return boxCollection;
     }
 
     /**
@@ -898,6 +846,8 @@ public class BoxLookupAndUpdate {
         private String location;
         private String componentTitle;
         private String containerType;
+        private String voyagerInfo;
+        private Boolean exportedToVoyager;
 
         private ContainerInfo(String label, String barcode, Boolean restriction, String location, String componentTitle, String containerType) {
             this.label = label;
@@ -911,6 +861,23 @@ public class BoxLookupAndUpdate {
             this.location = location;
             this.componentTitle = componentTitle;
             this.containerType = containerType;
+        }
+
+        private ContainerInfo(String label, String barcode, Boolean restriction, String location,
+                              String componentTitle, String containerType, String voyagerInfo, Boolean exportedToVoyager) {
+            this.label = label;
+            if (barcode == null || barcode.equals("0.0")) {
+                this.barcode = "";
+            } else {
+                this.barcode = barcode;
+            }
+
+            this.restriction = restriction;
+            this.location = location;
+            this.componentTitle = componentTitle;
+            this.containerType = containerType;
+            this.voyagerInfo = voyagerInfo;
+            this.exportedToVoyager = exportedToVoyager;
         }
 
         public String getLabel() {
@@ -947,6 +914,14 @@ public class BoxLookupAndUpdate {
 
         public void setContainerType(String containerType) {
             this.containerType = containerType;
+        }
+
+        public String getVoyagerInfo() {
+            return voyagerInfo;
+        }
+
+        public Boolean getExportedToVoyager() {
+            return exportedToVoyager;
         }
     }
 
