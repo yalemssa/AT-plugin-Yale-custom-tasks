@@ -460,7 +460,8 @@ public class BoxLookupAndUpdate {
                 PluginDataUtils.saveBoxLookReturnRecord(boxCollection);
             }
 
-            // set the voyager information for the containers now
+            // set the voyager information for the containers now since we don't need this information to
+            // to be saved
             setVoyagerInformation(boxCollection);
 
             System.out.println("Total Instances: " + instanceCount);
