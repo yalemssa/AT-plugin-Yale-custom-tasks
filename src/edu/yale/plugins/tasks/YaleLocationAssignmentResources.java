@@ -314,55 +314,85 @@ public class YaleLocationAssignmentResources extends JDialog {
         }
     }
 
+    /**
+     * Method to assign voyager information to the selected containers
+     * @param e
+     */
     private void assignVoyagerInfoActionPerformed(ActionEvent e) {
-        VoyagerInputValuesDialog dialog = new VoyagerInputValuesDialog(this);
+        if (containerLookupTable.getSelectedRow() == -1) {
+            JOptionPane.showMessageDialog(this, "You must select at least one container.");
+        } else {
+            VoyagerInputValuesDialog dialog = new VoyagerInputValuesDialog(this);
 
-        if (dialog.showDialog() == JOptionPane.OK_OPTION) {
-            // disable the UI buttons and set the progress monitor moving
-            setUIButtonsEnable(false);
-            updateProgressBar.setStringPainted(true);
-            updateProgressBar.setString("Updating Voyager Info ..."); // this doesn't show up!
-            updateProgressBar.setMinimum(0);
-            updateProgressBar.setMaximum(totalInstances);
+            if (dialog.showDialog() == JOptionPane.OK_OPTION) {
+                final int[] selectedRows = containerLookupTable.getSelectedRows();
 
-            final String bibHolding = dialog.getKeyHolding();
+                // disable the UI buttons and set the progress monitor moving
+                setUIButtonsEnable(false);
+                updateProgressBar.setStringPainted(true);
+                updateProgressBar.setString("Updating Voyager Info ..."); // this doesn't show up!
+                updateProgressBar.setMinimum(0);
+                updateProgressBar.setMaximum(getInstanceCount(selectedRows));
 
-            // run the update process in a separate thread
-            Thread performer = new Thread(new Runnable() {
-                public void run() {
-                    int instances = 0;
+                final String bibHolding = dialog.getKeyHolding();
 
-                    for (BoxLookupReturnRecords boxRecord : containerListValues) {
-                        try {
-                            // need to show a progress dialog here and call update voyager info in thread
-                            instances += boxLookupAndUpdate.updateVoyagerInformation(boxRecord.getInstanceIds(), bibHolding);
+                // run the update process in a separate thread
+                Thread performer = new Thread(new Runnable() {
+                    public void run() {
+                        int instances = 0;
 
-                            // update the box record voyager information
-                            boxRecord.setVoyagerInfo(bibHolding);
+                        for (int i : selectedRows) {
+                            BoxLookupReturnRecords boxRecord = containerTableModel.getElementAt(i);
 
-                            // update the progress bar
-                            updateProgressBar.setValue(instances);
-                        } catch (Exception e1) {
-                            showInstanceUpdateErrorDialog(boxRecord.toString());
-                            e1.printStackTrace();
+                            try {
+                                // need to show a progress dialog here and call update voyager info in thread
+                                instances += boxLookupAndUpdate.updateVoyagerInformation(boxRecord.getInstanceIds(), bibHolding);
+
+                                // update the box record voyager information
+                                boxRecord.setVoyagerInfo(bibHolding);
+
+                                // update the progress bar
+                                updateProgressBar.setValue(instances);
+                            } catch (Exception e1) {
+                                showInstanceUpdateErrorDialog(boxRecord.toString());
+                                e1.printStackTrace();
+                            }
                         }
+
+                        System.out.println("Total # of Instances Updated: " + instances);
+
+                        // re-enable the ui buttons and update other UI stuff
+                        setUIButtonsEnable(true);
+                        updateProgressBar.setStringPainted(false);
+                        updateProgressBar.setValue(0);
+
+                        containerLookupTable.invalidate();
+                        containerLookupTable.repaint();
                     }
+                });
 
-                    System.out.println("Total # of Instances Updated: " + totalInstances);
-
-                    // re-enable the ui buttons and update other UI stuff
-                    setUIButtonsEnable(true);
-                    updateProgressBar.setStringPainted(false);
-                    updateProgressBar.setValue(0);
-
-                    containerLookupTable.invalidate();
-                    containerLookupTable.repaint();
-                }
-            });
-
-            // start the thread now
-            performer.start();
+                // start the thread now
+                performer.start();
+            }
         }
+    }
+
+    /**
+     * Method to get the instance count of the selected row
+     *
+     * @param selectedRows
+     * @return
+     */
+    private int getInstanceCount(int[] selectedRows) {
+        int total = 0;
+
+        for (int i : selectedRows) {
+            BoxLookupReturnRecords boxRecord = containerTableModel.getElementAt(i);
+            String[] instanceIds = boxRecord.getInstanceIds().split(",\\s*");
+            total += instanceIds.length;
+        }
+
+        return total;
     }
 
     /**
