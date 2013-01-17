@@ -43,6 +43,7 @@ public class YaleAlternatingRowColorTable extends JTable{
 
 	private Color alternateColor = new Color(240, 240, 255);
 	private Color alternateForegroundColor = Color.RED;
+	private Color highlightColor = UIManager.getColor("Table.selectionBackground");
 	private boolean paintEmptyRows = TABLE_TYPE_NORMAL;
 
 	/**
@@ -178,7 +179,7 @@ public class YaleAlternatingRowColorTable extends JTable{
 				c.setBackground(colorForRow(row));
 				c.setForeground(forgroundColorForRow(row));
 			} else {
-				c.setBackground(UIManager.getColor("Table.selectionBackground"));
+				c.setBackground(highlightColor);
 				c.setForeground(forgroundColorForRow(row));
 			}
 			return c;
@@ -188,11 +189,19 @@ public class YaleAlternatingRowColorTable extends JTable{
 				c.setBackground(colorForRow(row));
 				c.setForeground(forgroundColorForRow(row));
 			} else {
-				c.setBackground(UIManager.getColor("Table.selectionBackground"));
+				c.setBackground(highlightColor);
 				c.setForeground(forgroundColorForRow(row));
 			}
 			return c;
 		}
 	}
+
+    /**
+     * The the selection background color
+     * @param highlightColor
+     */
+    public void setHighlightColor(Color highlightColor) {
+        this.highlightColor = highlightColor;
+    }
 
 }

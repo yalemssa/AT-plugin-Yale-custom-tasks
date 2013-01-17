@@ -49,6 +49,8 @@ public class BoxLookupReturnScreen extends ATBasicDialog {
 	private String box;
 	BoxLookupAndUpdate boxLookupAndUpdate;
 
+    // table that displays the results
+    private YaleAlternatingRowColorTable returnTable;
 
 	/** event list that hosts the issues */
 	private EventList<BoxLookupReturnRecords> resultsEventList = new BasicEventList<BoxLookupReturnRecords>();
@@ -329,7 +331,7 @@ public class BoxLookupReturnScreen extends ATBasicDialog {
 		SortedList<BoxLookupReturnRecords> sortedResults = new SortedList<BoxLookupReturnRecords>(resultsEventList);
         FilterList filterList = new FilterList(sortedResults, new TextComponentMatcherEditor(containerFilterTextField, new BoxReturnRecordsFilterator()));
 		EventTableModel<BoxLookupReturnRecords> resultsTableModel = new EventTableModel<BoxLookupReturnRecords>(filterList, new BoxLookupTableFormat());
-		YaleAlternatingRowColorTable returnTable = new YaleAlternatingRowColorTable(resultsTableModel, sortedResults);
+		returnTable = new YaleAlternatingRowColorTable(resultsTableModel, sortedResults);
 		TableComparatorChooser tableSorter = TableComparatorChooser.install(returnTable, sortedResults, TableComparatorChooser.MULTIPLE_COLUMN_MOUSE);
 
 		return returnTable;  //To change body of created methods use File | Settings | File Templates.
@@ -375,4 +377,12 @@ public class BoxLookupReturnScreen extends ATBasicDialog {
 	public void setElapsedTimeText(String time) {
 		elapsedTime.setText(time);
 	}
+
+    /**
+     * Method to set the highlight color of the Jtable
+     * @param highlightColor
+     */
+    public void setHighlightColor(Color highlightColor) {
+        returnTable.setHighlightColor(highlightColor);
+    }
 }

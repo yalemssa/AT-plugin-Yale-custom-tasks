@@ -28,6 +28,19 @@ public class YalePluginTasksConfigDialog extends JDialog {
     }
 
     /**
+     * Method that is called when the user is not level 5 to hide certain fields
+     */
+    public void limitAccess() {
+        useCacheRecordsCheckBox.setEnabled(false);
+        saveCacheToDBCheckBox.setEnabled(false);
+        exportVoyagerCheckBox.setEnabled(false);
+        deleteIndexButton.setEnabled(false);
+        deleteCountLabel.setEnabled(false);
+        runIndexButton.setEnabled(false);
+        updateAllRecordsCheckBox.setEnabled(false);
+    }
+
+    /**
      * Method to set the yale plugin task object
      *
      * @param yalePluginTasks
@@ -109,6 +122,20 @@ public class YalePluginTasksConfigDialog extends JDialog {
         }
     }
 
+    /**
+     * Method to set the cell highlight color. This setting is stored to the database
+     */
+    private void highlightButtonActionPerformed() {
+        Color newColor = JColorChooser.showDialog(
+                this,
+                "Choose Highlight Color",
+                highlightLabel.getBackground());
+
+        if (newColor != null) {
+            highlightLabel.setBackground(newColor);
+        }
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner non-commercial license
@@ -121,13 +148,15 @@ public class YalePluginTasksConfigDialog extends JDialog {
         deleteCountLabel = new JLabel();
         runIndexButton = new JButton();
         updateAllRecordsCheckBox = new JCheckBox();
+        highlightButton = new JButton();
+        highlightLabel = new JLabel();
         buttonBar = new JPanel();
         okButton = new JButton();
         cancelButton = new JButton();
         CellConstraints cc = new CellConstraints();
 
         //======== this ========
-        setTitle("Yale Tasks Config Dialog v2.0");
+        setTitle("Yale Tasks Config Dialog v2.01");
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
@@ -145,6 +174,8 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         FormFactory.DEFAULT_COLSPEC
                     },
                     new RowSpec[] {
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
@@ -195,6 +226,22 @@ public class YalePluginTasksConfigDialog extends JDialog {
                 //---- updateAllRecordsCheckBox ----
                 updateAllRecordsCheckBox.setText("Update All Records");
                 contentPanel.add(updateAllRecordsCheckBox, cc.xy(3, 9));
+
+                //---- highlightButton ----
+                highlightButton.setText("Set Highlighted Color");
+                highlightButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        highlightButtonActionPerformed();
+                    }
+                });
+                contentPanel.add(highlightButton, cc.xy(1, 11));
+
+                //---- highlightLabel ----
+                highlightLabel.setText(" Highlighted");
+                highlightLabel.setBackground(new Color(0, 51, 255));
+                highlightLabel.setOpaque(true);
+                highlightLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
+                contentPanel.add(highlightLabel, cc.xy(3, 11));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -248,8 +295,15 @@ public class YalePluginTasksConfigDialog extends JDialog {
     private JLabel deleteCountLabel;
     private JButton runIndexButton;
     private JCheckBox updateAllRecordsCheckBox;
+    private JButton highlightButton;
+    private JLabel highlightLabel;
     private JPanel buttonBar;
     private JButton okButton;
     private JButton cancelButton;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
+
+    // Method to return the highlighted color
+    public Color getHighlightColor() {
+        return highlightLabel.getBackground();
+    }
 }

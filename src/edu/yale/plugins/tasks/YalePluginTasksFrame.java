@@ -90,6 +90,7 @@ public class YalePluginTasksFrame extends JFrame {
 
                 final boolean useCache = yalePluginTasks.getConfigDialog().getUseCacheRecords();
                 final boolean alwaysSaveCache = yalePluginTasks.getConfigDialog().getAlwaysSaveCache();
+                final Color highlightColor = yalePluginTasks.getConfigDialog().getHighlightColor();
 
                 // disable the appropriate button
                 assignContainerButton.setEnabled(false);
@@ -116,6 +117,7 @@ public class YalePluginTasksFrame extends JFrame {
                                 public void run() {
                                     YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(YalePluginTasksFrame.this);
                                     locationAssignmentDialog.setSize(900, 800);
+                                    locationAssignmentDialog.setHighlightColor(highlightColor);
                                     locationAssignmentDialog.assignContainerListValues(boxes);
                                     locationAssignmentDialog.setBoxLookupAndUpdate(boxLookupAndUpdate);
                                     locationAssignmentDialog.setVisible(true);
@@ -261,7 +263,7 @@ public class YalePluginTasksFrame extends JFrame {
     }
 
     private void showConfigDialogButtonActionPerformed() {
-        yalePluginTasks.showConfigDialog();
+        yalePluginTasks.showConfigDialog(false);
     }
 
     private void boxSearchButtonActionPerformed() {

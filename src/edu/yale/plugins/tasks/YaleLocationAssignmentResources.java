@@ -900,4 +900,11 @@ public class YaleLocationAssignmentResources extends JDialog {
         return (status);
     }
 
+    /**
+     * Method to set the highlight color of the Jtable
+     * @param highlightColor
+     */
+    public void setHighlightColor(Color highlightColor) {
+        ((YaleAlternatingRowColorTable)containerLookupTable).setHighlightColor(highlightColor);
+    }
 }

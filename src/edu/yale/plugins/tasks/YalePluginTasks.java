@@ -16,6 +16,7 @@ import org.archiviststoolkit.hibernate.SessionFactory;
 import org.archiviststoolkit.model.ArchDescriptionAnalogInstances;
 import org.archiviststoolkit.model.Resources;
 import org.archiviststoolkit.model.ResourcesCommon;
+import org.archiviststoolkit.model.Users;
 import org.archiviststoolkit.mydomain.*;
 import org.archiviststoolkit.plugin.ATPlugin;
 import org.archiviststoolkit.structure.ATFieldInfo;
@@ -209,6 +210,8 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             return;
                         }
 
+                        final Color highlightColor = configDialog.getHighlightColor();
+
                         final BoxLookupReturnRecordsCollection boxes = boxLookupAndUpdate.gatherContainersBySeries(resource, monitor, configDialog.getUseCacheRecords());
 
                         // close the monitor
@@ -219,6 +222,7 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                             public void run() {
                                 YaleLocationAssignmentResources locationAssignmentDialog = new YaleLocationAssignmentResources(mainFrame);
                                 locationAssignmentDialog.setSize(900, 800);
+                                locationAssignmentDialog.setHighlightColor(highlightColor);
                                 locationAssignmentDialog.assignContainerListValues(boxes);
                                 locationAssignmentDialog.setBoxLookupAndUpdate(boxLookupAndUpdate);
                                 locationAssignmentDialog.setVisible(true);
@@ -344,7 +348,9 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
             }
         } else if (task.equals(BOX_LOOKUP)) {
             try {
+                Color highlightColor = configDialog.getHighlightColor();
                 BoxLookupReturnScreen returnScreen = new BoxLookupReturnScreen(mainFrame);
+                returnScreen.setHighlightColor(highlightColor);
                 returnScreen.showDialog();
             } catch (ClassNotFoundException e) {
                 new ErrorDialog("", e).showDialog();
@@ -352,10 +358,10 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
                 new ErrorDialog("", e).showDialog();
             }
         } else if (task.equals(SHOW_CONFIG)) {
-            if (mainFrame.getCurrentUserAccessClass() == 5) {
-                showConfigDialog();
+            if(mainFrame.getCurrentUserAccessClass() == Users.ACCESS_CLASS_SUPERUSER) {
+                showConfigDialog(false);
             } else {
-                JOptionPane.showMessageDialog(mainFrame, "This function is only available for level 5 users");
+                showConfigDialog(true);
             }
         }
     }
@@ -508,9 +514,15 @@ public class YalePluginTasks extends Plugin implements ATPlugin {
 
     /**
      * Method to display tje config dialog
+     * @param limitAccess
      */
-    public void showConfigDialog() {
+    public void showConfigDialog(boolean limitAccess) {
         if(configDialog != null) {
+            // used to limit the access of certain buttons only to level five
+            if(limitAccess) {
+                configDialog.limitAccess();
+            }
+
             configDialog.setVisible(true);
         }
     }
