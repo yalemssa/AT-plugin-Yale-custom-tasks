@@ -9,7 +9,6 @@ zip -rv YalePluginTasks2.zip . -i \*.class *.xml
 cp -v YalePluginTasks2.zip /Users/nathan/IdeaProjects/AT/plugins
 cp -v YalePluginTasks2.zip /Users/nathan/TestAT/Archivists\ Toolkit\ 2.0/plugins
 
-
 # copy to correct directory on windows
 cp -v YalePluginTasks2.zip /cygdrive/c/Users/nathan/Documents/IdeaProjects/AT/plugins
 cp -v YalePluginTasks2.zip /cygdrive/c/Users/nathan/TestAT/Archivists\ Toolkit\ 2.0/plugins

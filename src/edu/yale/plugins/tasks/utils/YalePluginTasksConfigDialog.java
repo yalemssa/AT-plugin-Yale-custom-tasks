@@ -6,6 +6,7 @@ package edu.yale.plugins.tasks.utils;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.util.prefs.Preferences;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
@@ -16,15 +17,45 @@ import edu.yale.plugins.tasks.YalePluginTasks;
  */
 public class YalePluginTasksConfigDialog extends JDialog {
     private YalePluginTasks yalePluginTasks;
+    private Preferences prefs;
 
     public YalePluginTasksConfigDialog(Frame owner) {
         super(owner);
         initComponents();
+        loadHighlightColor();
     }
 
     public YalePluginTasksConfigDialog(Dialog owner) {
         super(owner);
         initComponents();
+        loadHighlightColor();
+    }
+
+    /**
+     * Method to load the highlight color from the user preferences
+     */
+    private void loadHighlightColor() {
+        prefs = Preferences.userRoot().node(YalePluginTasks.class.getName());
+
+        int red = prefs.getInt("highlight_red", 25);
+        int green = prefs.getInt("highlight_green", 255);
+        int blue = prefs.getInt("highlight_blue", 102);
+
+        Color color = new Color(red, green, blue);
+
+        highlightLabel.setBackground(color);
+        highlightLabel2.setBackground(color);
+    }
+
+    /**
+     * Method to store the highlight color in the user preferences
+     */
+    private void storeHighlightColor() {
+        Color color = highlightLabel.getBackground();
+
+        prefs.putInt("highlight_red", color.getRed());
+        prefs.putInt("highlight_green", color.getGreen());
+        prefs.putInt("highlight_blue", color.getBlue());
     }
 
     /**
@@ -77,9 +108,16 @@ public class YalePluginTasksConfigDialog extends JDialog {
        return exportVoyagerCheckBox.isSelected();
     }
 
+    /**
+     * Save information to pref and database when OK button is pressed
+     */
     private void okButtonActionPerformed() {
         // TODO save setting to the database
+
         deleteCountLabel.setText("0 records deleted");
+
+        storeHighlightColor();
+
         setVisible(false);
     }
 
@@ -133,6 +171,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
 
         if (newColor != null) {
             highlightLabel.setBackground(newColor);
+            highlightLabel2.setBackground(newColor);
         }
     }
 
@@ -150,6 +189,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
         updateAllRecordsCheckBox = new JCheckBox();
         highlightButton = new JButton();
         highlightLabel = new JLabel();
+        highlightLabel2 = new JLabel();
         buttonBar = new JPanel();
         okButton = new JButton();
         cancelButton = new JButton();
@@ -174,6 +214,8 @@ public class YalePluginTasksConfigDialog extends JDialog {
                         FormFactory.DEFAULT_COLSPEC
                     },
                     new RowSpec[] {
+                        FormFactory.DEFAULT_ROWSPEC,
+                        FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
                         FormFactory.LINE_GAP_ROWSPEC,
                         FormFactory.DEFAULT_ROWSPEC,
@@ -238,10 +280,18 @@ public class YalePluginTasksConfigDialog extends JDialog {
 
                 //---- highlightLabel ----
                 highlightLabel.setText(" Highlighted");
-                highlightLabel.setBackground(new Color(0, 51, 255));
+                highlightLabel.setBackground(new Color(255, 255, 102));
                 highlightLabel.setOpaque(true);
                 highlightLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
                 contentPanel.add(highlightLabel, cc.xy(3, 11));
+
+                //---- highlightLabel2 ----
+                highlightLabel2.setText(" Highlighted");
+                highlightLabel2.setBackground(new Color(255, 255, 102));
+                highlightLabel2.setOpaque(true);
+                highlightLabel2.setFont(new Font("Tahoma", Font.BOLD, 11));
+                highlightLabel2.setForeground(Color.red);
+                contentPanel.add(highlightLabel2, cc.xy(3, 13));
             }
             dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -297,6 +347,7 @@ public class YalePluginTasksConfigDialog extends JDialog {
     private JCheckBox updateAllRecordsCheckBox;
     private JButton highlightButton;
     private JLabel highlightLabel;
+    private JLabel highlightLabel2;
     private JPanel buttonBar;
     private JButton okButton;
     private JButton cancelButton;
