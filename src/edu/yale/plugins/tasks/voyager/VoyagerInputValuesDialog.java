@@ -13,54 +13,39 @@
  * http://www.archiviststoolkit.org 
  * info@archiviststoolkit.org 
  *
- * Created by JFormDesigner on Tue Nov 03 15:14:38 EST 2009
+ * Created by JFormDesigner on Mon Sep 14 11:30:00 EDT 2009
  */
 
-package edu.yale.plugins.tasks.search;
+package edu.yale.plugins.tasks.voyager;
 
-import java.awt.*;
 import java.awt.event.*;
-import java.sql.SQLException;
+import java.awt.*;
 import javax.swing.*;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
-import edu.yale.plugins.tasks.utils.BoxLookupAndUpdate;
-import org.archiviststoolkit.swing.ATBasicDialog;
+import org.archiviststoolkit.swing.*;
+public class VoyagerInputValuesDialog extends ATBasicDialog {
 
-public class SearchDialog extends ATBasicDialog {
+	private String keyHolding;
 
-	private String msNumber;
-	private String ruNumber;
-	private String series;
-	private String accessionNumber;
-	private String box;
-	BoxLookupAndUpdate boxLookupAndUpdate;
-
-
-	public SearchDialog(Frame owner) throws ClassNotFoundException, SQLException {
+	public VoyagerInputValuesDialog(Frame owner) {
 		super(owner);
 		initComponents();
-		boxLookupAndUpdate = new BoxLookupAndUpdate();
 	}
 
-	public SearchDialog(Dialog owner) throws ClassNotFoundException, SQLException {
+	public VoyagerInputValuesDialog(Dialog owner) {
 		super(owner);
 		initComponents();
-		boxLookupAndUpdate = new BoxLookupAndUpdate();
 	}
 
-	private void searchButtonActionPerformed() {
-
-		msNumber = msNumberField.getText();
-		ruNumber = ruNumberField.getText();
-		series = seriesField.getText();
-		accessionNumber = accessionNumberField.getText();
-		box = boxField.getText();
-
-		if (msNumber.length() == 0 && ruNumber.length() == 0) {
-			JOptionPane.showMessageDialog(this, "You must enter data");
+	private void okButtonActionPerformed() {
+		if (voyagerKey.getText().length() == 0 || voyagerHoldingNumber.getText().length() == 0) {
+			JOptionPane.showMessageDialog(this, "You must enter both a bib and holding number", "Error", JOptionPane.ERROR_MESSAGE);
 		} else {
-//			boxLookupAndUpdate.doSearch(msNumber, ruNumber, series, accessionNumber, box);
+			System.out.println("Concat: " + voyagerKey.getText() + "_"+ voyagerHoldingNumber.getText());
+			setKeyHolding(voyagerKey.getText() + "_"+ voyagerHoldingNumber.getText());
+			System.out.println("KeyHolding: " + getKeyHolding());
+			super.performOkAction();
 		}
 	}
 
@@ -74,17 +59,11 @@ public class SearchDialog extends ATBasicDialog {
 		dialogPane = new JPanel();
 		contentPanel = new JPanel();
 		label1 = new JLabel();
-		msNumberField = new JTextField();
+		voyagerKey = new JTextField();
 		label2 = new JLabel();
-		ruNumberField = new JTextField();
-		label3 = new JLabel();
-		seriesField = new JTextField();
-		label4 = new JLabel();
-		accessionNumberField = new JTextField();
-		label5 = new JLabel();
-		boxField = new JTextField();
+		voyagerHoldingNumber = new JTextField();
 		buttonBar = new JPanel();
-		searchButton = new JButton();
+		okButton = new JButton();
 		cancelButton = new JButton();
 		CellConstraints cc = new CellConstraints();
 
@@ -109,39 +88,24 @@ public class SearchDialog extends ATBasicDialog {
 					new RowSpec[] {
 						FormFactory.DEFAULT_ROWSPEC,
 						FormFactory.LINE_GAP_ROWSPEC,
-						FormFactory.DEFAULT_ROWSPEC,
-						FormFactory.LINE_GAP_ROWSPEC,
-						FormFactory.DEFAULT_ROWSPEC,
-						FormFactory.LINE_GAP_ROWSPEC,
-						FormFactory.DEFAULT_ROWSPEC,
-						FormFactory.LINE_GAP_ROWSPEC,
 						FormFactory.DEFAULT_ROWSPEC
 					}));
 
 				//---- label1 ----
-				label1.setText("MS #");
+				label1.setText("Voyager Key");
 				contentPanel.add(label1, cc.xy(1, 1));
-				contentPanel.add(msNumberField, cc.xy(3, 1));
+
+				//---- voyagerKey ----
+				voyagerKey.setColumns(15);
+				contentPanel.add(voyagerKey, cc.xy(3, 1));
 
 				//---- label2 ----
-				label2.setText("RU #");
+				label2.setText("Voyager Holding #");
 				contentPanel.add(label2, cc.xy(1, 3));
-				contentPanel.add(ruNumberField, cc.xy(3, 3));
 
-				//---- label3 ----
-				label3.setText("Series");
-				contentPanel.add(label3, cc.xy(1, 5));
-				contentPanel.add(seriesField, cc.xy(3, 5));
-
-				//---- label4 ----
-				label4.setText("Accn");
-				contentPanel.add(label4, cc.xy(1, 7));
-				contentPanel.add(accessionNumberField, cc.xy(3, 7));
-
-				//---- label5 ----
-				label5.setText("Box");
-				contentPanel.add(label5, cc.xy(1, 9));
-				contentPanel.add(boxField, cc.xy(3, 9));
+				//---- voyagerHoldingNumber ----
+				voyagerHoldingNumber.setColumns(15);
+				contentPanel.add(voyagerHoldingNumber, cc.xy(3, 3));
 			}
 			dialogPane.add(contentPanel, BorderLayout.CENTER);
 
@@ -157,14 +121,14 @@ public class SearchDialog extends ATBasicDialog {
 					},
 					RowSpec.decodeSpecs("pref")));
 
-				//---- searchButton ----
-				searchButton.setText("Search");
-				searchButton.addActionListener(new ActionListener() {
+				//---- okButton ----
+				okButton.setText("OK");
+				okButton.addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
-						searchButtonActionPerformed();
+						okButtonActionPerformed();
 					}
 				});
-				buttonBar.add(searchButton, cc.xy(2, 1));
+				buttonBar.add(okButton, cc.xy(2, 1));
 
 				//---- cancelButton ----
 				cancelButton.setText("Cancel");
@@ -188,57 +152,19 @@ public class SearchDialog extends ATBasicDialog {
 	private JPanel dialogPane;
 	private JPanel contentPanel;
 	private JLabel label1;
-	private JTextField msNumberField;
+	private JTextField voyagerKey;
 	private JLabel label2;
-	private JTextField ruNumberField;
-	private JLabel label3;
-	private JTextField seriesField;
-	private JLabel label4;
-	private JTextField accessionNumberField;
-	private JLabel label5;
-	private JTextField boxField;
+	private JTextField voyagerHoldingNumber;
 	private JPanel buttonBar;
-	private JButton searchButton;
+	private JButton okButton;
 	private JButton cancelButton;
 	// JFormDesigner - End of variables declaration  //GEN-END:variables
 
-	public String getMsNumber() {
-		return msNumber;
+	public String getKeyHolding() {
+		return keyHolding;
 	}
 
-	public void setMsNumber(String msNumber) {
-		this.msNumber = msNumber;
-	}
-
-	public String getRuNumber() {
-		return ruNumber;
-	}
-
-	public void setRuNumber(String ruNumber) {
-		this.ruNumber = ruNumber;
-	}
-
-	public String getSeries() {
-		return series;
-	}
-
-	public void setSeries(String series) {
-		this.series = series;
-	}
-
-	public String getAccessionNumber() {
-		return accessionNumber;
-	}
-
-	public void setAccessionNumber(String accessionNumber) {
-		this.accessionNumber = accessionNumber;
-	}
-
-	public String getBox() {
-		return box;
-	}
-
-	public void setBox(String box) {
-		this.box = box;
+	public void setKeyHolding(String keyHolding) {
+		this.keyHolding = keyHolding;
 	}
 }
